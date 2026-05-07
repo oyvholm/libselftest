@@ -1,0 +1,1927 @@
+/*
+ * selftest.c
+ * File ID: 9c088252-4a58-11f1-bac1-83850402c3ce
+ *
+ * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
+ *
+ * This program is free software; you can redistribute it and/or modify it 
+ * under the terms of the GNU General Public License as published by the Free 
+ * Software Foundation; either version 2 of the License, or (at your option) 
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with 
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "lst-demo.h"
+
+/*
+ * The functions in this file are supposed to be compatible with `Test::More` 
+ * in Perl 5 as far as possible.
+ */
+
+#define EXECSTR  "__EXSTR__"
+#define TYPE_HELP_STR  EXECSTR ": Type \"" EXECSTR " --help\" for help" \
+                       " screen. Returning with value 1.\n"
+#define OPTION_ERROR_STR  EXECSTR ": Option error\n" TYPE_HELP_STR
+#define chp  (char *[])
+#define print_gotexp_nostr(seq, got, exp)  do { \
+	char *g = allocstr((seq), (got)), *e = allocstr((seq), (exp)); \
+	if (!g || !e) \
+		failed_ok("allocstr()"); \
+	else \
+		print_gotexp(g, e); \
+	free(e); \
+	free(g); \
+} while (0)
+#define print_gotexp_double(got, exp)  do { \
+	if ((got) != (exp)) \
+		print_gotexp_nostr("%.8f", (got), (exp)); \
+} while (0)
+#define print_gotexp_int(got, exp)  do { \
+	if ((got) != (exp)) \
+		print_gotexp_nostr("%d", (got), (exp)); \
+} while (0)
+#define print_gotexp_size_t(got, exp)  do { \
+	if ((got) != (exp)) \
+		print_gotexp_nostr("%zu", (got), (exp)); \
+} while (0)
+#define print_gotexp_ulong(got, exp)  do { \
+	if ((got) != (exp)) \
+		print_gotexp_nostr("%lu", (got), (exp)); \
+} while (0)
+#define DIAG_DEBL  diag("DEBL: %s:%s():%d", __FILE__, __func__, __LINE__)
+
+/*
+ * Main test macros, meant to be a human-friendly frontend against ok(). Unlike 
+ * most other testing frameworks that return 1 for success and 0 for error, 
+ * these functions and macros return 0 for success and 1 if the test fails. The 
+ * reasoning behind this is:
+ *
+ * We don't look for successful tests, but tests that fail. By returning 1 when 
+ * the test fails, the return value can be used to increase a fail counter to 
+ * find the total number of failed tests, or take special action based on the 
+ * outcome of a single test or a series of previous tests. If the macros or 
+ * ok() had returned 0 for failure and non-zero for success, we would need an 
+ * additional counter to keep track of the number of executed tests and then 
+ * use subtraction to see if any tests failed. Besides, C typically returns 0 
+ * for success and non-zero for failure, so this convention should feel natural 
+ * to C programmers. The `ok(expr, desc, ...)` function is a frontend to 
+ * `ok_va()`, which evaluates `expr`, printing an "ok" line to stdout if `expr` 
+ * is 0 (success, returning 0) or "not ok" if `expr` is non-zero (failure, 
+ * returning 1), using `desc` with any additional arguments for the test 
+ * description.
+ *
+ * All macros have a description parameter at the end which supports printf() 
+ * sequences and additional optional arguments.
+ *
+ * In addition to the regular macros, the same macros exist as `OK_*_L()` 
+ * variants. The functionality is identical, but they have an extra `linenum` 
+ * parameter before the `desc` parameter. This is used to communicate to ok() 
+ * and ok_va() the line number of the test. If the test is inside a helper 
+ * function that's repeated many times, the line number inside the helper 
+ * function is sent to ok(), and that's not what's usually wanted. By having a 
+ * `const int linenumber` parameter in the helper function, the scopes above 
+ * can deliver the actual line the test is executed from.
+ *
+ * This is a list of the various macros, with a description of which types of 
+ * tests they're intended for, and the criteria for success:
+ *
+ * OK_EQUAL(a, b, desc, ...) - Verifies that the values `a` and `b` are 
+ * identical. It uses `==` for comparison and is intended for variables of any 
+ * type that supports the `==` operator.
+ * Example: OK_EQUAL(num_found, expected, "Found %u elements", expected);
+ *
+ * OK_ERROR(msg, ...) - Generates a test failure with `msg` as the description. 
+ * Used for unexpected errors that can't be ignored, incrementing the failure 
+ * counter and failing the test run. Typically used in conditional checks.
+ * Example: if (valgrind_lines(stderr_output))
+ *                  OK_ERROR("Found Valgrind output in stderr");
+ *
+ * OK_FAILURE(func, desc, ...) - Used for functions that return 0 for success 
+ * and non-zero for failure. Expects the function to fail (return non-zero). 
+ * Example: OK_FAILURE(stat(file), "File is unreadable or doesn't exist");
+ *
+ * OK_FALSE(val, desc, ...) - Used for boolean values or expressions expected 
+ * to be false. Negated expressions can be confusing, so `OK_TRUE` is usually a 
+ * clearer choice for complex checks.
+ * Examples: OK_FALSE(user_exists(user), "User %s doesn't exist", user);
+ *           OK_FALSE(result == 5, "Result is not 5");
+ *
+ * OK_MEMCMP(a, b, len, desc, ...) - Compares `len` bytes of the buffers `a` 
+ * and `b` and succeeds if the buffers are identical. This macro differs from 
+ * OK_STRNCMP in that the buffers can contain null bytes.
+ * Example: OK_MEMCMP(buf1, buf2, 512, "Buffers are identical");
+ *
+ * OK_NOTEQUAL(a, b, desc, ...) - Expects the values `a` and `b` to be 
+ * different. The `!=` operator is used for the comparison.
+ * Example: OK_NOTEQUAL(userid1, userid2, "The users have different IDs");
+ *
+ * OK_NOTNULL(p, desc, ...) - Succeeds if the pointer `p` is non-NULL.
+ * Examples: OK_NOTNULL(strstr(txt, substr), "Substring was found in text");
+ *           OK_NOTNULL(fp, "File pointer is not NULL");
+ *
+ * OK_NULL(p, desc, ...) - Expects the pointer `p` to be NULL.
+ * Examples: OK_NULL(getenv(var), "Environment variable %s is undefined", var);
+ *           OK_NULL(strchr(file, '/'), "No slash in file name \"%s\"", file);
+ *
+ * OK_STRCMP(a, b, desc, ...) - Compares the strings `a` and `b` and succeeds 
+ * if they're identical.
+ * Example: OK_STRCMP(file, "index.html", "File name is correct");
+ *
+ * OK_STRNCMP(a, b, len, desc, ...) - Compares the first `len` characters of 
+ * the strings `a` and `b` and succeeds if the substrings are identical.
+ * Example: OK_STRNCMP(file, "tmp", 3, "File name has \"tmp\" prefix");
+ *
+ * OK_SUCCESS(func, desc, ...) - Used for functions that return 0 for success 
+ * and non-zero for failure. Expects the function to succeed (return zero).
+ * Example: OK_SUCCESS(rmdir(tempdir), "Delete temporary directory");
+ *
+ * OK_TRUE(val, desc, ...) - Expects the boolean value `val` to be true. This 
+ * macro can also be used for comparisons or expressions not covered by other 
+ * macros, like checking if a value is larger or smaller than another.
+ * Examples: OK_TRUE(file_exists(file), "File %s was created", file);
+ *           OK_TRUE(errcount < 10, "Error count %d is below 10", errcount);
+ */
+
+#define OK_EQUAL_L(a, b, linenum, desc, ...)  ok(!((a) == (b)), (linenum), (desc), ##__VA_ARGS__)
+#define OK_ERROR_L(linenum, msg, ...)  ok(1, (linenum), (msg), ##__VA_ARGS__)
+#define OK_FAILURE_L(func, linenum, desc, ...)  ok(!(func), (linenum), (desc), ##__VA_ARGS__)
+#define OK_FALSE_L(val, linenum, desc, ...)  ok(!!(val), (linenum), (desc), ##__VA_ARGS__)
+#define OK_MEMCMP_L(a, b, len, linenum, desc, ...)  ok(!!memcmp((a), (b), (len)), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NOTEQUAL_L(a, b, linenum, desc, ...)  ok(!((a) != (b)), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NOTNULL_L(p, linenum, desc, ...)  ok(!(p), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NULL_L(p, linenum, desc, ...)  ok(!!(p), (linenum), (desc), ##__VA_ARGS__)
+#define OK_STRCMP_L(a, b, linenum, desc, ...)  ok(!!strcmp((a), (b)), (linenum), (desc), ##__VA_ARGS__)
+#define OK_STRNCMP_L(a, b, len, linenum, desc, ...)  ok(!!strncmp((a), (b), (len)), (linenum), (desc), ##__VA_ARGS__)
+#define OK_SUCCESS_L(func, linenum, desc, ...)  ok(!!(func), (linenum), (desc), ##__VA_ARGS__)
+#define OK_TRUE_L(val, linenum, desc, ...)  ok(!(val), (linenum), (desc), ##__VA_ARGS__)
+
+#define OK_EQUAL(a, b, desc, ...)  OK_EQUAL_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_ERROR(msg, ...)  OK_ERROR_L(__LINE__, (msg), ##__VA_ARGS__)
+#define OK_FAILURE(func, desc, ...)  OK_FAILURE_L((func), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_FALSE(val, desc, ...)  OK_FALSE_L((val), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_MEMCMP(a, b, len, desc, ...)  OK_MEMCMP_L((a), (b), (len), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_NOTEQUAL(a, b, desc, ...)  OK_NOTEQUAL_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_NOTNULL(p, desc, ...)  OK_NOTNULL_L((p), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_NULL(p, desc, ...)  OK_NULL_L((p), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_STRCMP(a, b, desc, ...)  OK_STRCMP_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_STRNCMP(a, b, len, desc, ...)  OK_STRNCMP_L((a), (b), (len), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_SUCCESS(func, desc, ...)  OK_SUCCESS_L((func), __LINE__, (desc), ##__VA_ARGS__)
+#define OK_TRUE(val, desc, ...)  OK_TRUE_L((val), __LINE__, (desc), ##__VA_ARGS__)
+
+#define diag_errno()  do { \
+	diag("errno = %d (%s)", errno, strerror(errno)); \
+	errno = 0; \
+} while (0)
+#define failed_ok(a)  do { \
+	if (errno) \
+		OK_ERROR("%s():%d: %s failed: %s", \
+		         __func__, __LINE__, (a), strerror(errno)); \
+	else \
+		OK_ERROR("%s():%d: %s failed", __func__, __LINE__, (a)); \
+	errno = 0; \
+} while (0)
+
+#define TMPDIR  ".lst-demo-test.tmp"
+
+#define sc(cmd, num_stdout, num_stderr, desc, ...)  \
+        sc_func(__LINE__, (cmd), (num_stdout), (num_stderr), \
+                (desc), ##__VA_ARGS__);
+#define tc(cmd, num_stdout, num_stderr, desc, ...)  \
+        tc_func(__LINE__, (cmd), (num_stdout), (num_stderr), \
+                (desc), ##__VA_ARGS__);
+#define Tc(cmd, num_stdout, num_stderr, desc, ...) \
+        tc_func(linenum, (cmd), (num_stdout), (num_stderr), \
+        (desc), ##__VA_ARGS__)
+#define rc(cmd, num_stdout, num_stderr, desc, ...)  \
+        rc_func(__LINE__, (cmd), (num_stdout), (num_stderr), \
+                (desc), ##__VA_ARGS__);
+#define verify_output_files(desc, exp_stdout, exp_stderr)  \
+        verify_output_files_func(__LINE__, desc, exp_stdout, exp_stderr)
+
+static char *execname;
+static int failcount = 0;
+static int testnum = 0;
+
+static const char *stderr_file = TMPDIR "/stderr.txt";
+static const char *stdout_file = TMPDIR "/stdout.txt";
+static int orig_stderr_fd = -1;
+static int orig_stdout_fd = -1;
+
+/******************************************************************************
+                             --selftest functions
+******************************************************************************/
+
+/*
+ * bail_out() - Aborts the test suite with an optional message written to 
+ * stdout. To abort without a message, use NULL in `msg`. Returns nothing.
+ */
+
+static void bail_out(const char *msg, ...) /* gncov */
+{
+	va_list ap;
+
+	fputs("Bail out!", stdout); /* gncov */
+	if (msg) { /* gncov */
+		fputs("  ", stdout); /* gncov */
+		va_start(ap, msg); /* gncov */
+		vprintf(msg, ap); /* gncov */
+		va_end(ap); /* gncov */
+	}
+	fputc('\n', stdout); /* gncov */
+
+	exit(EXIT_FAILURE); /* gncov */
+}
+
+/*
+ * ok_va() - Prints a log line to stdout. If `i` is 0, an "ok" line is printed, 
+ * otherwise a "not ok" line is printed. `desc` is the test description and can 
+ * use printf sequences.
+ *
+ * Returns 0 if `i` is 0, otherwise it returns 1.
+ */
+
+static int ok_va(const int i, const int linenum, const char *desc, va_list ap)
+{
+	va_list ap_copy;
+	char *s, *s2;
+
+	assert(desc);
+	assert(*desc);
+
+	if (!desc)
+		bail_out("%s(): desc is NULL", __func__); /* gncov */
+
+	printf("%sok %d - %d: ", (i ? "not " : ""), ++testnum, linenum);
+	va_copy(ap_copy, ap);
+	s = allocstr_va(desc, ap_copy);
+	va_end(ap_copy);
+	if (!s)
+		bail_out("allocstr_va() failed: %s", /* gncov */
+		         strerror(errno)); /* gncov */
+	s2 = str_replace(s, "\n", "\\n");
+	if (!s2) {
+		free(s); /* gncov */
+		bail_out("str_replace() failed: %s", /* gncov */
+		         strerror(errno)); /* gncov */
+	}
+	puts(s2);
+	free(s2);
+	free(s);
+	failcount += !!i;
+
+	return !!i;
+}
+
+/*
+ * ok() - Frontend against ok_va(). Refer to the description for that function 
+ * for more info. Returns 0 if `i` is 0, otherwise it returns 1.
+ */
+
+static int ok(const int i, const int linenum, const char *desc, ...)
+{
+	va_list ap;
+
+	assert(desc);
+	assert(*desc);
+
+	if (!desc)
+		bail_out("%s(): desc is NULL", __func__); /* gncov */
+
+	va_start(ap, desc);
+	ok_va(i, linenum, desc, ap);
+	va_end(ap);
+
+	return !!i;
+}
+
+/*
+ * diag_output_va() - Receives a printf-like string and returns an allocated 
+ * string, prefixed with "# " and all '\n' characters converted to "\n# ". 
+ * Returns NULL if anything fails or `format` is NULL.
+ */
+
+static char *diag_output_va(const char *format, va_list ap)
+{
+	const char *src;
+	char *buffer, *converted_buffer, *dst;
+	size_t converted_size;
+
+	assert(format);
+	if (!format)
+		return NULL; /* gncov */
+
+	buffer = allocstr_va(format, ap);
+	if (!buffer) {
+		failed_ok("allocstr_va()"); /* gncov */
+		return NULL; /* gncov */
+	}
+
+	/* Prepare for worst case, every char is a newline. */
+	converted_size = strlen("# ") + strlen(buffer) * 3 + 1;
+	converted_buffer = malloc(converted_size);
+	if (!converted_buffer) {
+		free(buffer); /* gncov */
+		return NULL; /* gncov */
+	}
+
+	src = buffer;
+	dst = converted_buffer;
+	*dst++ = '#';
+	*dst++ = ' ';
+	while (*src) {
+		if (*src == '\n') {
+			*dst++ = '\n';
+			*dst++ = '#';
+			*dst++ = ' ';
+		} else {
+			*dst++ = *src;
+		}
+		src++;
+	}
+	*dst = '\0';
+	free(buffer);
+
+	return converted_buffer;
+}
+
+/*
+ * diag_output() - Frontend against diag_output_va(), used by the tests. 
+ * Returns the value from diag_output_va() (a pointer to the allocated string), 
+ * or NULL if anything failed.
+ */
+
+static char *diag_output(const char *format, ...)
+{
+	va_list ap;
+	char *result;
+
+	if (!format)
+		return NULL;
+
+	va_start(ap, format);
+	result = diag_output_va(format, ap);
+	va_end(ap);
+
+	return result;
+}
+
+/*
+ * diag() - Prints a diagnostic message prefixed with "# " to stdout. `printf` 
+ * sequences can be used. All `\n` characters are converted to "\n# ".
+ *
+ * A terminating `\n` is automatically added to the string. Returns 0 if 
+ * successful, or 1 if `format` is NULL or diag_output_va() failed.
+ */
+
+static int diag(const char *format, ...)
+{
+	va_list ap;
+	char *converted_buffer;
+
+	if (!format)
+		return 1;
+
+	va_start(ap, format);
+	converted_buffer = diag_output_va(format, ap);
+	va_end(ap);
+	if (!converted_buffer) {
+		failed_ok("diag_output_va()"); /* gncov */
+		return 1; /* gncov */
+	}
+	printf("%s\n", converted_buffer);
+	free(converted_buffer);
+
+	return 0;
+}
+
+/*
+ * gotexp_output() - Generates the output used by print_gotexp(). Returns NULL 
+ * if allocstr() or mystrdup() fails. Otherwise, it returns a pointer to an 
+ * allocated string with the output.
+ */
+
+static char *gotexp_output(const char *got, const char *exp)
+{
+	char *s;
+
+	if (got == exp || (got && exp && !strcmp(got, exp))) {
+		s = mystrdup("");
+		if (!s)
+			failed_ok("mystrdup()"); /* gncov */
+	} else {
+		s = allocstr("         got: '%s'\n"
+		             "    expected: '%s'", no_null(got), no_null(exp));
+		if (!s)
+			failed_ok("allocstr()"); /* gncov */
+	}
+
+	return s;
+}
+
+/*
+ * print_gotexp() - Prints the value of the actual and exepected data if the 
+ * strings `got` and `exp` are different. Used when a test fails. Returns 1 if 
+ * `got` or `exp` are different, otherwise 0.
+ */
+
+static int print_gotexp(const char *got, const char *exp)
+{
+	char *s;
+
+	s = gotexp_output(got, exp);
+	if (s && *s)
+		diag(s); /* gncov */
+	free(s);
+
+	return 0;
+}
+
+/*
+ * valgrind_lines() - Searches for Valgrind markers ("\n==DIGITS==") in `s`, 
+ * used by test_command(). If a marker is found or `s` is NULL, it returns 1. 
+ * Otherwise, it returns 0.
+ */
+
+static int valgrind_lines(const char *s)
+{
+	const char *p = s;
+
+	if (!s)
+		return OK_ERROR("%s(): s == NULL", __func__); /* gncov */
+
+	while (*p) {
+		p = strstr(p, "\n==");
+		if (!p)
+			return 0;
+		p += 3;
+		if (!*p)
+			return 0;
+		if (!isdigit((unsigned char)*p))
+			continue;
+		while (isdigit((unsigned char)*p))
+			p++;
+		if (!*p)
+			return 0;
+		if (!strncmp(p, "==", 2))
+			return 1;
+		p++;
+	}
+
+	return 0;
+}
+
+/*
+ * tc_cmp() - Comparison function used by test_command(). There are 3 types of 
+ * verification, set via the `type` parameter:
+ *
+ * - 0: substring search, `exp` must exist within `got`
+ * - 1: the whole output must be identical to the expected value
+ * - 2: regexp search, `got` must match the pattern `exp`
+ *
+ * `got` is the actual output from the program, and `exp` is the expected 
+ * output, substring, or regexp pattern.
+ *
+ * If `type` is 0 (substring search) and `exp` is empty, the output in `got` 
+ * must also be empty for the test to succeed.
+ *
+ * Returns 0 if the string was found, otherwise 1.
+ */
+
+static int tc_cmp(const int type, const char *got, const char *exp)
+{
+	assert(got);
+	assert(exp);
+	if (!got || !exp)
+		return 1; /* gncov */
+
+	if (type || !*exp) {
+		if (type == 1)
+			return !!strcmp(got, exp);
+		else if (type == 2)
+			return !!re_check(exp, got);
+	}
+
+	return !strstr(got, exp);
+}
+
+/*
+ * test_command() - Runs the executable with arguments in `cmd` and verifies 
+ * stdout, stderr and the return value against `exp_stdout`, `exp_stderr` and 
+ * `exp_retval`. Returns nothing.
+ */
+
+static void test_command(const int linenum, const char type, char *cmd[],
+                         const char *exp_stdout, const char *exp_stderr,
+                         const int exp_retval, const char *desc, va_list ap)
+{
+	const struct Options o = opt_struct();
+	struct streams ss;
+	char *e_stdout, *e_stderr, *descbuf;
+
+	assert(cmd);
+	assert(*cmd);
+	assert(desc);
+	assert(*desc);
+	if (!cmd) {
+		OK_ERROR_L(linenum, "%s(): cmd is NULL", __func__); /* gncov */
+		return; /* gncov */
+	}
+
+	if (o.verbose >= 4) {
+		int i = -1; /* gncov */
+		printf("# %s(", __func__); /* gncov */
+		while (cmd[++i]) /* gncov */
+			printf("%s\"%s\"", i ? ", " : "", cmd[i]); /* gncov */
+		printf(")\n"); /* gncov */
+	}
+
+	e_stdout = str_replace(exp_stdout, EXECSTR, execname);
+	e_stderr = str_replace(exp_stderr, EXECSTR, execname);
+	descbuf = allocstr_va(desc, ap);
+	if (!descbuf) {
+		failed_ok("allocstr_va()"); /* gncov */
+		return; /* gncov */
+	}
+	streams_init(&ss);
+	streams_exec(&o, &ss, cmd);
+	if (e_stdout) {
+		OK_SUCCESS_L(tc_cmp(type, ss.out.buf, e_stdout), linenum,
+		             "%s (stdout)", descbuf);
+		if (tc_cmp(type, ss.out.buf, e_stdout))
+			print_gotexp(ss.out.buf, e_stdout); /* gncov */
+	}
+	if (e_stderr) {
+		OK_SUCCESS_L(tc_cmp(type, ss.err.buf, e_stderr), linenum,
+		             "%s (stderr)", descbuf);
+		if (tc_cmp(type, ss.err.buf, e_stderr))
+			print_gotexp(ss.err.buf, e_stderr); /* gncov */
+	}
+	OK_EQUAL_L(ss.ret, exp_retval, linenum, "%s (retval)", descbuf);
+	print_gotexp_int(ss.ret, exp_retval);
+	free(descbuf);
+	free(e_stderr);
+	free(e_stdout);
+	if (valgrind_lines(ss.err.buf))
+		OK_ERROR_L(linenum, "Found valgrind output"); /* gncov */
+	streams_free(&ss);
+}
+
+/*
+ * sc_func() - Executes command `cmd` and verifies that stdout, stderr and the 
+ * return value corresponds to the expected values. The `exp_*` variables are 
+ * substrings that must occur in the actual output. Not meant to be called 
+ * directly, but via the uc() macro that logs the line number automatically. 
+ * Returns nothing.
+ */
+
+static void sc_func(const int linenum, char *cmd[], const char *exp_stdout,
+                    const char *exp_stderr, const int exp_retval,
+                    const char *desc, ...)
+{
+	va_list ap;
+
+	assert(cmd);
+	assert(*cmd);
+	assert(desc);
+	assert(*desc);
+
+	va_start(ap, desc);
+	test_command(linenum, 0, cmd, exp_stdout, exp_stderr, exp_retval,
+	             desc, ap);
+	va_end(ap);
+}
+
+/*
+ * tc_func() - Executes command `cmd` and verifies that stdout, stderr and the 
+ * return value are identical to the expected values. The `exp_*` variables are 
+ * strings that must be identical to the actual output. Not meant to be called 
+ * directly, but via the tc() macro that logs the line number automatically. 
+ * Returns nothing.
+ */
+
+static void tc_func(const int linenum, char *cmd[], const char *exp_stdout,
+                    const char *exp_stderr, const int exp_retval,
+                    const char *desc, ...)
+{
+	va_list ap;
+
+	assert(cmd);
+	assert(*cmd);
+	assert(desc);
+	assert(*desc);
+
+	va_start(ap, desc);
+	test_command(linenum, 1, cmd, exp_stdout, exp_stderr, exp_retval,
+	             desc, ap);
+	va_end(ap);
+}
+
+/*
+ * rc_func() - Executes command `cmd` and verifies that stdout and stderr 
+ * matches the regexp patterns in `exp_stdout` and `exp_stderr` and that the 
+ * return value is identical to `exp_retval`. Not meant to be called directly, 
+ * but via the rc() macro that logs the line number automatically. Returns 
+ * nothing.
+ */
+
+static void rc_func(const int linenum, char *cmd[], const char *exp_stdout,
+                    const char *exp_stderr, const int exp_retval,
+                    const char *desc, ...)
+{
+	va_list ap;
+
+	assert(cmd);
+	assert(*cmd);
+	assert(desc);
+	assert(*desc);
+
+	va_start(ap, desc);
+	test_command(linenum, 2, cmd, exp_stdout, exp_stderr, exp_retval,
+	             desc, ap);
+	va_end(ap);
+}
+
+/*
+ * init_output_files() - Redirects stdout and stderr to files in TMPDIR. Used 
+ * for testing functions that prints to stderr or stdout. Returns 0 on success, 
+ * or 1 on failure.
+ */
+
+static int init_output_files(void)
+{
+	int stdout_fd, stderr_fd;
+
+	assert(file_exists(TMPDIR));
+
+	if (orig_stdout_fd != -1 || orig_stderr_fd != -1) {
+		/*
+		 * Already initialized, perhaps a previous test didn't restore 
+		 * properly.
+		 */
+		OK_ERROR("%s(): Already initialized", __func__); /* gncov */
+		return 1; /* gncov */
+	}
+
+	stdout_fd = open(stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (stdout_fd == -1) {
+		failed_ok("open() for stdout"); /* gncov */
+		diag("stdout_file = \"%s\"", stdout_file); /* gncov */
+		return 1; /* gncov */
+	}
+
+	stderr_fd = open(stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (stderr_fd == -1) {
+		failed_ok("open() for stderr"); /* gncov */
+		diag("stderr_file = \"%s\"", stderr_file); /* gncov */
+		close(stdout_fd); /* gncov */
+		return 1; /* gncov */
+	}
+
+	orig_stdout_fd = dup(1);
+	if (orig_stdout_fd == -1) {
+		failed_ok("dup() for stdout"); /* gncov */
+		close(stdout_fd); /* gncov */
+		close(stderr_fd); /* gncov */
+		return 1; /* gncov */
+	}
+
+	orig_stderr_fd = dup(2);
+	if (orig_stderr_fd == -1) {
+		failed_ok("dup() for stderr"); /* gncov */
+		close(stdout_fd); /* gncov */
+		close(stderr_fd); /* gncov */
+		close(orig_stdout_fd); /* gncov */
+		return 1; /* gncov */
+	}
+
+	fflush(stdout);
+	fflush(stderr);
+
+	if (dup2(stdout_fd, 1) == -1) {
+		failed_ok("dup2() for stdout"); /* gncov */
+		close(stdout_fd); /* gncov */
+		close(stderr_fd); /* gncov */
+		close(orig_stdout_fd); /* gncov */
+		close(orig_stderr_fd); /* gncov */
+		orig_stdout_fd = -1; /* gncov */
+		orig_stderr_fd = -1; /* gncov */
+		return 1; /* gncov */
+	}
+	close(stdout_fd);
+
+	if (dup2(stderr_fd, 2) == -1) {
+		failed_ok("dup2() for stderr"); /* gncov */
+		close(stderr_fd); /* gncov */
+		close(orig_stdout_fd); /* gncov */
+		close(orig_stderr_fd); /* gncov */
+		/* Restore stdout partially if possible */
+		dup2(orig_stdout_fd, 1); /* gncov */
+		orig_stdout_fd = -1; /* gncov */
+		orig_stderr_fd = -1; /* gncov */
+		return 1; /* gncov */
+	}
+	close(stderr_fd);
+
+	return 0;
+}
+
+/*
+ * restore_output_files() - Restores stdout and stderr to their original file 
+ * descriptors. Returns nothing, but logs failures.
+ */
+
+static void restore_output_files(void)
+{
+	if (orig_stdout_fd == -1 && orig_stderr_fd == -1) {
+		/* Not initialized, nothing to restore */
+		return; /* gncov */
+	}
+
+	fflush(stdout);
+	fflush(stderr);
+
+	if (orig_stdout_fd != -1) {
+		if (dup2(orig_stdout_fd, 1) == -1) {
+			failed_ok("dup2() (restore stdout)"); /* gncov */
+		}
+		close(orig_stdout_fd);
+		orig_stdout_fd = -1;
+	}
+
+	if (orig_stderr_fd != -1) {
+		if (dup2(orig_stderr_fd, 2) == -1) {
+			failed_ok("dup2() (restore stderr)"); /* gncov */
+		}
+		close(orig_stderr_fd);
+		orig_stderr_fd = -1;
+	}
+}
+
+/*
+ * verify_output_files_func() - Verify that the contents of stdout_file and 
+ * stderr_file is equal to `exp_stdout` and `exp_stderr`, respectively. To 
+ * avoid checking either stdout or stderr, use NULL as the value. Returns 
+ * nothing.
+ */
+
+static void verify_output_files_func(const int linenum, const char *desc,
+                                     const char *exp_stdout,
+                                     const char *exp_stderr)
+{
+	char *result;
+
+	assert(desc);
+	assert(*desc);
+
+	if (exp_stdout) {
+		result = read_from_file(stdout_file);
+		if (result) {
+			OK_STRCMP_L(result, exp_stdout, linenum,
+			            "%s (stdout)", desc);
+			print_gotexp(result, exp_stdout);
+			free(result);
+		} else {
+			failed_ok("read_from_file(stdout_file)"); /* gncov */
+		}
+	}
+
+	if (exp_stderr) {
+		result = read_from_file(stderr_file);
+		if (result) {
+			OK_STRCMP_L(result, exp_stderr, linenum,
+			            "%s (stderr)", desc);
+			print_gotexp(result, exp_stderr);
+			free(result);
+		} else {
+			failed_ok("read_from_file(stderr_file)"); /* gncov */
+		}
+	}
+}
+
+/*
+ * is_root() - Returns 1 if the current user is root, otherwise it returns 0.
+ */
+
+static int is_root(void)
+{
+	return !getuid();
+}
+
+/*
+ * print_version_info() - Displays output from the --version command. Returns 0 
+ * if ok, or 1 if streams_exec() failed.
+ */
+
+static int print_version_info(const struct Options *o)
+{
+	struct streams ss;
+	int res;
+
+	assert(o);
+	streams_init(&ss);
+	res = streams_exec(o, &ss, chp{ execname, "--version", NULL });
+	if (res) {
+		failed_ok("streams_exec()"); /* gncov */
+		if (ss.err.buf) /* gncov */
+			diag(ss.err.buf); /* gncov */
+		return 1; /* gncov */
+	}
+	diag("========== BEGIN version info ==========\n"
+	     "%s"
+	     "=========== END version info ===========", no_null(ss.out.buf));
+	streams_free(&ss);
+
+	return 0;
+}
+
+/******************************************************************************
+                    lst-demo-specific selftest functions
+******************************************************************************/
+
+/*
+ * cleanup_tempdir() - Delete all known filesystem entries in the temporary 
+ * work directory defined in TMPDIR. Expects `linenum` to be `__LINE__` or the 
+ * `linenum` value from a parent function. Returns nothing.
+ */
+
+static void cleanup_tempdir(const int linenum)
+{
+	if (file_exists(stderr_file))
+		OK_SUCCESS_L(remove(stderr_file), linenum,
+		             "Delete %s", stderr_file);
+	if (file_exists(stdout_file))
+		OK_SUCCESS_L(remove(stdout_file), linenum,
+		             "Delete %s", stdout_file);
+}
+
+/******************************************************************************
+                 Function tests, no temporary directory needed
+******************************************************************************/
+
+                             /*** selftest.c ***/
+
+/*
+ * test_ok_macros() - Tests the OK_*() macros. Returns nothing.
+ */
+
+static void test_ok_macros(void)
+{
+	diag("Test the OK_*() macros");
+
+	OK_EQUAL(3.14, 3.14, "OK_EQUAL(%.2f, %.2f, ...)", 3.14, 3.14);
+	/* OK_ERROR("OK_ERROR(...), can't be tested"); */
+	OK_FAILURE(1, "OK_FAILURE(1, ...)");
+	OK_FALSE(5 == 9, "OK_FALSE(5 == 9, ...)");
+	OK_MEMCMP("with\0null", "with\0null", strlen("with null") + 1,
+	          "OK_MEMCMP(\"with\\0null\", \"with\\0null\","
+	          " strlen(\"with null\") + 1, ...)");
+	OK_NOTEQUAL(19716, 1916, "OK_NOTEQUAL(%u, %u, ...)", 19716, 1916);
+	OK_NOTNULL(strstr("abcdef", "cde"),
+	           "OK_NOTNULL(strstr(\"abcdef\", \"cde\"), ...)");
+	OK_NULL(strstr("abcdef", "notfound"),
+	               "OK_NULL(strstr(\"abcdef\", \"notfound\"), ...)");
+	OK_STRCMP("str", "str", "OK_STRCMP(\"%s\", \"%s\", ...)", "str", "str");
+	OK_STRNCMP("abcde", "abcyz", 3,
+	           "OK_STRNCMP(\"abcde\", \"abcyz\", 3, ...)");
+	OK_SUCCESS(0, "OK_SUCCESS(0, ...)");
+	OK_TRUE(9 > -4, "OK_TRUE(%d > %d, ...)", 9, -4);
+}
+
+/*
+ * test_diag_big() - Tests diag_output() with a string larger than BUFSIZ. 
+ * Returns nothing.
+ */
+
+static void test_diag_big(void)
+{
+	size_t size;
+	char *p, *outp;
+
+	size = BUFSIZ * 2;
+	p = malloc(size + 1);
+	if (!p) {
+		failed_ok("malloc()"); /* gncov */
+		return; /* gncov */
+	}
+
+	memset(p, 'a', size);
+	p[3] = 'b';
+	p[4] = 'c';
+	p[size] = '\0';
+
+	outp = diag_output("%s", p);
+	OK_NOTNULL(outp, "diag_big: diag_output() returns ok");
+	OK_EQUAL(strlen(outp), size + 2, "diag_big: String length is correct");
+	print_gotexp_size_t(strlen(outp), size + 2);
+	OK_STRNCMP(outp, "# aaabcaaa", 10, "diag_big: Beginning is ok");
+	free(outp);
+	free(p);
+}
+
+/*
+ * test_diag() - Tests the diag_output() function. diag() can't be tested 
+ * directly because it would pollute the the test output. Returns nothing.
+ */
+
+static void test_diag(void)
+{
+	char *p, *s;
+	const char *desc;
+
+	diag("Test diag()");
+
+	OK_EQUAL(diag(NULL), 1, "diag(NULL)");
+	OK_NULL(diag_output(NULL), "diag_output() receives NULL");
+
+	p = diag_output("Text with\nnewline");
+	OK_NOTNULL(p, "diag_output() with newline didn't return NULL");
+	s = "# Text with\n# newline";
+	desc = "diag_output() with newline, output is ok";
+	if (p)
+		OK_STRCMP(p, s, desc);
+	else
+		OK_ERROR(desc); /* gncov */
+	print_gotexp(p, s);
+	free(p);
+
+	p = diag_output("\n\n\n\n\n\n\n\n\n\n");
+	OK_NOTNULL(p, "diag_output() with only newlines didn't return NULL");
+	s = "# \n# \n# \n# \n# \n# \n# \n# \n# \n# \n# ";
+	desc = "diag_output() with only newlines";
+	if (p)
+		OK_STRCMP(p, s, desc);
+	else
+		OK_ERROR(desc); /* gncov */
+	print_gotexp(p, s);
+	free(p);
+
+	p = diag_output("%d = %s, %d = %s, %d = %s",
+	                1, "one", 2, "two", 3, "three");
+	OK_NOTNULL(p, "diag_output() with %%d and %%s didn't return NULL");
+	s = "# 1 = one, 2 = two, 3 = three";
+	desc = "diag_output() with %%d and %%s";
+	if (p)
+		OK_STRCMP(p, s, desc);
+	else
+		OK_ERROR(desc); /* gncov */
+	print_gotexp(p, s);
+	free(p);
+
+	test_diag_big();
+}
+
+/*
+ * chk_go() - Used by test_gotexp_output(). Verifies that `gotexp_output(got, 
+ * exp)` returns the correct output with the correct `exp_got` and `exp_exp` 
+ * values, or an empty string if the strings are identical. Returns nothing.
+ */
+
+static void chk_go(const int linenum, const char *got, const char *exp,
+                   const char *exp_got, const char *exp_exp)
+{
+	char *s, *exp_str;
+
+	assert(exp_got);
+	assert(exp_exp);
+
+	s = gotexp_output(got, exp);
+	if (!s) {
+		failed_ok("gotexp_output()"); /* gncov */
+		return; /* gncov */
+	}
+	if (exp_got == exp_exp
+	    || (exp_got && exp_exp && !strcmp(exp_got, exp_exp))) {
+		exp_str = mystrdup("");
+	} else {
+		exp_str = allocstr("         got: '%s'\n"
+		                   "    expected: '%s'", exp_got, exp_exp);
+	}
+	if (!exp_str) {
+		failed_ok("mystrdup() or allocstr()"); /* gncov */
+		free(s); /* gncov */
+		return; /* gncov */
+	}
+	OK_STRCMP_L(s, exp_str, linenum, "gotexp_output(\"%s\", \"%s\")",
+	            no_null(got), no_null(exp));
+	if (strcmp(s, exp_str))
+		diag("Got:\n%s\nExpected:\n%s", s, exp_str); /* gncov */
+	free(exp_str);
+	free(s);
+}
+
+/*
+ * test_gotexp_output() - Tests the gotexp_output() function. print_gotexp() 
+ * can't be tested directly because it would pollute stderr. Returns nothing.
+ */
+
+static void test_gotexp_output(void)
+{
+	diag("Test gotexp_output()");
+
+#define chk_go(got, exp, exp_got, exp_exp)  chk_go(__LINE__, (got), (exp), \
+                                                   (exp_got), (exp_exp))
+	chk_go("", "", "", "");
+	chk_go("a", "a", "", "");
+	chk_go("a", "b", "a", "b");
+	chk_go("got this", "expected this", "got this", "expected this");
+	chk_go("with\nnewline", "also with\nnewline",
+	       "with\nnewline", "also with\nnewline");
+
+	chk_go("a", NULL, "a", "(null)");
+	chk_go(NULL, "b", "(null)", "b");
+	chk_go(NULL, NULL, "", "");
+#undef chk_go
+}
+
+/*
+ * test_valgrind_lines() - Tests the behavior of valgrind_lines(). Returns 
+ * nothing.
+ */
+
+static void test_valgrind_lines(void)
+{
+	int i;
+	const char
+	*has[] = {
+		"\n==123==",
+		"\n==154363456657465745674567456523==maybe",
+		"\n==\n==123==maybe",
+		"\n==\n==123==maybe==456==",
+		"indeed\n==1==",
+		NULL
+	},
+	*hasnot[] = {
+		"",
+		"==123==",
+		"\n=",
+		"\n=123== \n234==",
+		"\n=123==",
+		"\n== 234==",
+		"\n==",
+		"\n==12.3==",
+		"\n==123",
+		"\n==123=",
+		"\n==jj==",
+		"abc",
+		"abc\n==",
+		NULL
+	};
+
+	diag("Test valgrind_lines()");
+
+	i = 0;
+	while (has[i]) {
+		OK_TRUE(valgrind_lines(has[i]),
+		        "valgrind_lines(): Has valgrind marker, string %d", i);
+		i++;
+	}
+
+	i = 0;
+	while (hasnot[i]) {
+		OK_FALSE(valgrind_lines(hasnot[i]),
+		         "valgrind_lines(): No valgrind marker, string %d", i);
+		i++;
+	}
+}
+
+                            /*** lst-demo.c ***/
+
+/*
+ * test_std_strerror() - Tests the std_strerror() function. Returns nothing.
+ */
+
+static void test_std_strerror(void)
+{
+	diag("Test std_strerror()");
+	OK_STRCMP(std_strerror(EACCES), "Permission denied",
+	          "std_strerror(EACCES) is as expected");
+}
+
+                              /*** strings.c ***/
+
+/*
+ * test_mystrdup() - Tests the mystrdup() function. Returns nothing.
+ */
+
+static void test_mystrdup(void)
+{
+	const char *txt = "Test string";
+	char *s;
+
+	diag("Test mystrdup()");
+	OK_NULL(mystrdup(NULL), "mystrdup(NULL) == NULL");
+
+	s = mystrdup(txt);
+	if (!s) {
+		failed_ok("mystrdup()"); /* gncov */
+		return; /* gncov */
+	}
+	OK_STRCMP(s, txt, "mystrdup(): Strings are identical");
+	free(s);
+}
+
+/*
+ * test_allocstr() - Tests the allocstr() function. Returns nothing.
+ */
+
+static void test_allocstr(void)
+{
+	const size_t bufsize = BUFSIZ * 2 + 1;
+	char *p, *p2, *p3;
+	size_t alen;
+
+	diag("Test allocstr()");
+	p = malloc(bufsize);
+	if (!p) {
+		failed_ok("malloc()"); /* gncov */
+		return; /* gncov */
+	}
+	memset(p, 'a', bufsize - 1);
+	p[bufsize - 1] = '\0';
+	p2 = allocstr("%s", p);
+	if (!p2) {
+		failed_ok("allocstr() with BUFSIZ * 2"); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	alen = strlen(p2);
+	OK_EQUAL(alen, BUFSIZ * 2, "allocstr(): strlen is correct");
+	p3 = p2;
+	while (*p3) {
+		if (*p3 != 'a') {
+			p3 = NULL; /* gncov */
+			break; /* gncov */
+		}
+		p3++;
+	}
+	OK_NOTNULL(p3, "allocstr(): Content of string is correct");
+
+cleanup:
+	free(p2);
+	free(p);
+}
+
+/*
+ * chk_cs() - Used by test_count_substr(). Verifies that the number of 
+ * non-overlapping substrings `substr` inside string `s` is `count`. `desc` is 
+ * the test description. Returns nothing.
+ */
+
+static void chk_cs(const int linenum, const char *s, const char *substr,
+                   const size_t count, const char *desc)
+{
+	size_t result;
+
+	assert(desc);
+	assert(*desc);
+
+	result = count_substr(s, substr);
+	OK_EQUAL_L(result, count, linenum, "count_substr(): %s", desc);
+	print_gotexp_size_t(result, count);
+}
+
+/*
+ * test_count_substr() - Tests the count_substr() function. Returns nothing.
+ */
+
+static void test_count_substr(void)
+{
+	char *s;
+	size_t bsize = 10000;
+
+	diag("Test count_substr()");
+
+#define chk_cs(s, substr, count, desc)  chk_cs(__LINE__, (s), (substr), \
+                                               (count), (desc))
+	chk_cs("", "", 0, "s and substr are empty");
+	chk_cs("", "a", 0, "s is empty");
+	chk_cs("aaa", "", 0, "substr is empty");
+
+	chk_cs("", NULL, 0, "substr is NULL");
+	chk_cs(NULL, "abcdef", 0, "s is NULL");
+	chk_cs(NULL, NULL, 0, "s and substr is NULL");
+
+	chk_cs("Abc", "abc", 0, "Case sensitivity");
+	chk_cs("a", "aa", 0, "substr is longer than s");
+	chk_cs("aaa", "a", 3, "3 \"a\" in \"aaa\"");
+	chk_cs("aaa", "aa", 1, "Non-overlapping \"aa\" in \"aaa\"");
+	chk_cs("aaabaaa", "aaa", 2, "Non-overlapping \"aaa\" split by \"b\"");
+	chk_cs("abababab", "ab", 4, "4 \"ab\" in s");
+	chk_cs("abc", "b", 1, "Single character substring");
+	chk_cs("abc", "d", 0, "Substring not found");
+	chk_cs("abcdeabc", "abc", 2, "Substring at start and end");
+	chk_cs("abcdef" "abcdef" "abcdef", "abc", 3, "3 \"abc\" in s");
+	chk_cs("abcdef", "abcdef", 1, "s and substr are identical");
+	chk_cs("zzzGHJ\nabc\nGHJ\nabcGHJ", "GHJ", 3, "s with newlines");
+	chk_cs("Ḡṹṛḡḷḗ", "ḡ", 1, "UTF-8, U+1Exx area");
+
+	s = malloc(bsize + 1);
+	if (!s) {
+		failed_ok("malloc()"); /* gncov */
+		return; /* gncov */
+	}
+	memset(s, '!', bsize);
+	s[bsize] = '\0';
+	chk_cs(s, "!!!!!!!!!!", bsize / 10, "Large buffer");
+	free(s);
+#undef chk_cs
+}
+
+/*
+ * chk_sr() - Used by test_str_replace(). Verifies that all non-overlapping 
+ * occurrences of substring `s1` are replaced with the string `s2` in the 
+ * string `s`, resulting in the string `exp`. Returns nothing.
+ */
+
+static void chk_sr(const int linenum, const char *s, const char *s1,
+                   const char *s2, const char *exp, const char *desc)
+{
+	char *result;
+
+	assert(desc);
+	assert(*desc);
+
+	result = str_replace(s, s1, s2);
+	if (!result || !exp)
+		OK_EQUAL_L(result, exp, linenum, "str_replace(): %s", desc);
+	else
+		OK_STRCMP_L(result, exp, linenum, "str_replace(): %s", desc);
+	print_gotexp(result, exp);
+	free(result);
+}
+
+/*
+ * test_str_replace() - Tests the str_replace() function. Returns nothing.
+ */
+
+static void test_str_replace(void)
+{
+	char *s;
+	size_t bsize = 10000;
+
+	diag("Test str_replace()");
+
+#define chk_sr(s, s1, s2, exp, desc)  chk_sr(__LINE__, (s), (s1), (s2), \
+                                             (exp), (desc))
+	chk_sr("", "", "", "", "s, s1, and s2 are empty");
+	chk_sr("abc", "", "b", "abc", "s1 is empty");
+	chk_sr("", "a", "b", "", "s is empty");
+	chk_sr("", "a", "", "", "s and s2 is empty");
+
+	chk_sr(NULL, "a", "b", NULL, "s is NULL");
+	chk_sr("abc", NULL, "b", NULL, "s1 is NULL");
+	chk_sr("abc", "a", NULL, NULL, "s2 is NULL");
+	chk_sr(NULL, NULL, NULL, NULL, "s, s1, and s2 is NULL");
+
+	chk_sr("test", "test", "test", "test", "s, s1, and s2 are identical");
+	chk_sr("abc", "b", "DEF", "aDEFc", "abc, replace b with DEF");
+	chk_sr("abcabcabc", "b", "DEF", "aDEFcaDEFcaDEFc",
+	       "abcabcabc, replace all b with DEF");
+	chk_sr("abcdefgh", "defg", "", "abch", "Replace defg with nothing");
+	chk_sr("abcde", "bcd", "X", "aXe", "Replace bcd with X");
+	chk_sr("abc", "d", "X", "abc", "d not in abc");
+	chk_sr("ababab", "aba", "X", "Xbab", "Replace aba in ababab");
+	chk_sr("abc", "b", "", "ac", "Replace b with nothing");
+	chk_sr("abc", "", "X", "abc", "Replace empty with X");
+	chk_sr("Ḡṹṛḡḷḗ", "ḡ", "X", "ḠṹṛXḷḗ", "Replace UTF-8 character with X");
+
+	s = malloc(bsize + 1);
+	if (!s) {
+		failed_ok("malloc()"); /* gncov */
+		return; /* gncov */
+	}
+	memset(s, '!', bsize);
+	s[bsize] = '\0';
+	chk_sr(s, "!!!!!!!!!!", "", "", "Replace all text in large buffer");
+	free(s);
+
+	s = malloc(bsize + 1);
+	if (!s) {
+		failed_ok("malloc()"); /* gncov */
+		return; /* gncov */
+	}
+	memset(s, '!', bsize);
+	s[1234] = 'y';
+	s[bsize - 1] = 'z';
+	s[bsize] = '\0';
+	chk_sr(s, "!!!!!!!!!!", "", "!!!!y!!!!z", "Large buffer with y and z");
+	free(s);
+#undef chk_sr
+}
+
+/******************************************************************************
+                   Function tests, use a temporary directory
+******************************************************************************/
+
+                            /*** lst-demo.c ***/
+
+/*
+ * test_myerror() - Tests the myerror() function. Returns nothing.
+ */
+
+static void test_myerror(void)
+{
+	int res, len_stderr;
+	const char *desc;
+	char *orig_progname, *exp_stderr;
+
+	diag("Test myerror()");
+
+	desc = "myerror() with float";
+	if (init_output_files()) {
+		restore_output_files(); /* gncov */
+		failed_ok("init_output_files()"); /* gncov */
+		return; /* gncov */
+	}
+	errno = EACCES;
+	orig_progname = progname;
+	progname = execname;
+	res = myerror("Test with float: %.5f", 3.14159);
+	progname = orig_progname;
+	restore_output_files();
+	OK_EQUAL(errno, 0, "%s (errno)", desc);
+	print_gotexp_int(errno, 0);
+	exp_stderr = allocstr("%s: Test with float: 3.14159: Permission"
+	                      " denied\n", execname);
+	if (!exp_stderr) {
+		failed_ok("allocstr()"); /* gncov */
+		return; /* gncov */
+	}
+	len_stderr = (int)strlen(exp_stderr);
+	verify_output_files(desc, "", exp_stderr);
+	OK_EQUAL(res, len_stderr, "%s (retval)", desc);
+	print_gotexp_int(res, len_stderr);
+	cleanup_tempdir(__LINE__);
+	free(exp_stderr);
+}
+
+                                /*** io.c ***/
+
+/*
+ * test_file_exists() - Tests the file_exists() function. Returns nothing.
+ */
+
+static void test_file_exists(void)
+{
+	FILE *fp;
+
+	diag("Test file_exists()");
+
+	OK_FALSE(file_exists(TMPDIR "/nonexisting"),
+	         "%s/nonexisting does not exist", TMPDIR);
+
+	OK_NOTNULL(fp = fopen(TMPDIR "/regfile", "w"),
+	           "Create regular file %s/regfile", TMPDIR);
+	OK_SUCCESS(fclose(fp), "Close " TMPDIR "/regfile");
+	OK_TRUE(file_exists(TMPDIR "/regfile"),
+	        "File %s/regfile does exist", TMPDIR);
+
+	OK_SUCCESS(mkdir(TMPDIR "/dir", 0777), "mkdir %s/dir", TMPDIR);
+	OK_TRUE(file_exists(TMPDIR "/dir"),
+	        "Directory %s/dir does exist", TMPDIR);
+
+	OK_SUCCESS(symlink("regfile", TMPDIR "/symlink"),
+	           "Create %s/symlink, points to regfile", TMPDIR);
+	OK_TRUE(file_exists(TMPDIR "/symlink"),
+	        "%s/symlink does exist", TMPDIR);
+
+	OK_SUCCESS(symlink("dir", TMPDIR "/dirlink"),
+	           "Create %s/dirlink, points to dir", TMPDIR);
+	OK_TRUE(file_exists(TMPDIR "/dirlink"),
+	        "%s/dirlink does exist", TMPDIR);
+
+	OK_SUCCESS(symlink("nonexisting", TMPDIR "/broken"),
+	           "Create broken symlink %s/broken", TMPDIR);
+	OK_TRUE(file_exists(TMPDIR "/broken"),
+	        "Broken symlink %s/broken does exist", TMPDIR);
+
+	OK_SUCCESS(mkdir(TMPDIR "/nopermdir", 0),
+	                 "mkdir %s/nopermdir with no permissions", TMPDIR);
+	OK_TRUE(file_exists(TMPDIR "/nopermdir"),
+	        "Directory %s/nopermdir does exist", TMPDIR);
+	OK_FALSE(file_exists(TMPDIR "/nopermdir/inaccessible"),
+	        "Tries to check %s/nopermdir/inaccessible", TMPDIR);
+	if (is_root()) {
+		OK_TRUE(1, "errno is EACCES (%s)" /* gncov */
+		           " # SKIP Running as root", strerror(EACCES));
+	} else {
+		OK_EQUAL(errno, EACCES,
+		         "errno is EACCES (%s)", strerror(EACCES));
+	}
+	errno = 0;
+
+	OK_SUCCESS(remove(TMPDIR "/regfile"), "Delete %s/regfile", TMPDIR);
+	OK_SUCCESS(rmdir(TMPDIR "/dir"), "rmdir %s/dir", TMPDIR);
+	OK_SUCCESS(remove(TMPDIR "/symlink"), "Delete %s/symlink", TMPDIR);
+	OK_SUCCESS(remove(TMPDIR "/dirlink"), "Delete %s/dirlink", TMPDIR);
+	OK_SUCCESS(remove(TMPDIR "/broken"), "Delete %s/broken", TMPDIR);
+	OK_SUCCESS(rmdir(TMPDIR "/nopermdir"), "rmdir %s/nopermdir", TMPDIR);
+}
+
+/*
+ * test_create_file() - Tests the create_file() function. Returns nothing.
+ */
+
+static void test_create_file(void)
+{
+	const char *desc, *file, *data;
+	int res;
+	struct stat sb;
+	char *s;
+
+	diag("Test create_file()");
+
+	OK_TRUE(file_exists(TMPDIR), "%s exists", TMPDIR);
+	OK_FAILURE(create_file(TMPDIR, NULL),
+	           "create_file(%s), but it's already a directory", TMPDIR);
+	OK_EQUAL(errno, EISDIR, "errno is EISDIR");
+	if (errno != EISDIR)
+		diag_errno(); /* gncov */
+	errno = 0;
+
+	desc = "create_file() with NULL creates empty file";
+	file = TMPDIR "/emptyfile";
+	OK_SUCCESS(res = create_file(file, NULL), "%s (exec)", desc);
+	if (res) {
+		diag_errno(); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	if (stat(file, &sb)) {
+		failed_ok("stat()"); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	OK_EQUAL(sb.st_size, 0, "%s is empty", file);
+	OK_SUCCESS(remove(file), "Delete %s", file);
+
+	desc = "create_file() with test data";
+	data = "Test data\n";
+	file = TMPDIR "/datafile";
+	OK_SUCCESS(res = create_file(file, "%s", data), "%s (exec)", desc);
+	if (res) {
+		diag_errno(); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	OK_NOTNULL(s = read_from_file(file), "Read data from file");
+	if (!s)
+		diag_errno(); /* gncov */
+	else
+		OK_STRCMP(s, data, "Data from file is correct");
+	free(s);
+
+cleanup:
+	OK_SUCCESS(remove(file), "Delete %s", file);
+}
+
+/*
+ * test_read_from_file() - Tests the read_from_file() function. Returns 
+ * nothing.
+ */
+
+static void test_read_from_file(void)
+{
+	char *p = NULL;
+	int orig_errno;
+
+	diag("Test read_from_file()");
+
+	p = read_from_file(TMPDIR "/non-existing");
+	orig_errno = errno;
+	errno = 0;
+	OK_NULL(p, "read_from_file(): Non-existing file, NULL is returned");
+	OK_EQUAL(orig_errno, ENOENT, "read_from_file(): errno is ENOENT");
+	if (orig_errno != ENOENT) {
+		diag("errno was %d (%s)", /* gncov */
+		     orig_errno, strerror(orig_errno));
+	}
+}
+
+                                /* strings.c */
+
+/*
+ * chk_rc() - Used by test_re_check(). Verifies that `re_check(pattern, s)` 
+ * succeeds and returns 0.
+ */
+
+static void chk_rc(const int linenum, const char *pattern, const char *s)
+{
+	OK_SUCCESS_L(re_check(pattern, s), linenum,
+	             "re_check(\"%s\", \"%s\")", pattern, s);
+}
+
+/*
+ * test_re_check() - Tests the re_check() function. Returns nothing.
+ */
+
+static void test_re_check(void)
+{
+	char *desc, *orig_progname, *err_s = NULL, *exp = NULL;
+	int res;
+
+	diag("Test re_check()");
+
+#define chk_rc(pattern, s)  chk_rc(__LINE__, (pattern), (s))
+	chk_rc("^$", "");
+	chk_rc("abc.*yz", "123abcdefghixyz321");
+	chk_rc("with\nlf", "123with\nlf321");
+	chk_rc("^a(b|c)d", "acdef");
+	chk_rc("^ab?cd", "acdef");
+	chk_rc("^a.*z$", "a\nb\ncdefz");
+#undef chk_rc
+
+	desc = "re_check(\"ab(c\", \"abc\")";
+	if (init_output_files()) {
+		restore_output_files(); /* gncov */
+		failed_ok("init_output_files()"); /* gncov */
+		return; /* gncov */
+	}
+	orig_progname = progname;
+	progname = execname;
+	res = re_check("ab(c", "abc");
+	progname = orig_progname;
+	restore_output_files();
+	OK_EQUAL(res, -1, "%s (retval)", desc);
+	verify_output_files(desc, "", NULL);
+	exp = allocstr("%s: re_check(): regcomp() failed: ", execname);
+	if (!exp) {
+		failed_ok("allocstr()"); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	err_s = read_from_file(stderr_file);
+	if (!err_s) {
+		failed_ok("read_from_file()"); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	if (OK_STRNCMP(err_s, exp, strlen(exp), "%s (stderr)", desc))
+		print_gotexp(err_s, exp); /* gncov */
+
+cleanup:
+	free(err_s);
+	free(exp);
+	cleanup_tempdir(__LINE__);
+}
+
+/******************************************************************************
+            Test the executable file, no temporary directory needed
+******************************************************************************/
+
+                             /*** --valgrind ***/
+
+/*
+ * test_valgrind_option() - Tests the --valgrind command line option. Returns 
+ * nothing.
+ */
+
+static void test_valgrind_option(const struct Options *o)
+{
+	struct streams ss;
+
+	assert(o);
+	diag("Test --valgrind");
+
+	if (o->valgrind) {
+		struct Options mod_opt = *o; /* gncov */
+
+		mod_opt.valgrind = false; /* gncov */
+		streams_init(&ss); /* gncov */
+		streams_exec(&mod_opt, &ss, chp{ "valgrind", /* gncov */
+		                                 "--version", NULL });
+		if (!strstr(ss.out.buf, "valgrind-")) { /* gncov */
+			OK_ERROR("Valgrind is not installed," /* gncov */
+			         " disabling Valgrind checks");
+			set_opt_valgrind(false); /* gncov */
+		} else {
+			OK_SUCCESS(0, "Valgrind is installed"); /* gncov */
+		}
+		streams_free(&ss); /* gncov */
+	}
+
+	sc((chp{ execname, "--valgrind", "-h", NULL }),
+	   "Show this",
+	   "",
+	   EXIT_SUCCESS,
+	   "--valgrind -h");
+}
+
+                          /*** Standard options ***/
+
+/*
+ * test_standard_options() - Tests the various generic options available in 
+ * most programs. Returns nothing.
+ */
+
+static void test_standard_options(void)
+{
+	char *s;
+
+	diag("Test standard options");
+
+	diag("Test -h/--help");
+	sc((chp{ execname, "-h", NULL }),
+	   "  Show this help",
+	   "",
+	   EXIT_SUCCESS,
+	   "-h");
+	sc((chp{ execname, "--help", NULL }),
+	   "  Show this help",
+	   "",
+	   EXIT_SUCCESS,
+	   "--help");
+
+	diag("Test -v/--verbose");
+	sc((chp{ execname, "-h", "--verbose", NULL }),
+	   "  Show this help",
+	   "",
+	   EXIT_SUCCESS,
+	   "-hv: Help text is displayed");
+	sc((chp{ execname, "-hv", NULL }),
+	   EXEC_VERSION,
+	   "",
+	   EXIT_SUCCESS,
+	   "-hv: Version number is printed along with the help text");
+	sc((chp{ execname, "-vvv", "--verbose", "--help", NULL }),
+	   "  Show this help",
+	   EXECSTR ": main(): Using verbose level 4\n",
+	   EXIT_SUCCESS,
+	   "-vvv --verbose: Using correct verbose level");
+	sc((chp{ execname, "-vvvvq", "-v", "--verbose", "--help", NULL }),
+	   "  Show this help",
+	   EXECSTR ": main(): Using verbose level 5\n",
+	   EXIT_SUCCESS,
+	   "--verbose: One -q reduces the verbosity level");
+
+	diag("Test --version");
+	s = allocstr("%s %s (%s)\n", execname, EXEC_VERSION, EXEC_DATE);
+	if (s) {
+		sc((chp{ execname, "--version", NULL }),
+		   s,
+		   "",
+		   EXIT_SUCCESS,
+		   "--version");
+		free(s);
+	} else {
+		failed_ok("allocstr()"); /* gncov */
+	}
+	tc((chp{ execname, "--version", "-q", NULL }),
+	   EXEC_VERSION "\n",
+	   "",
+	   EXIT_SUCCESS,
+	   "--version with -q shows only the version number");
+
+	diag("Test --license");
+	rc((chp{ execname, "--license", NULL }),
+	   "GNU General Public License.*either version 2 of the License",
+	   "^$",
+	   EXIT_SUCCESS,
+	   "--license: It's version 2 of the GPL");
+
+	diag("Unknown option");
+	sc((chp{ execname, "--gurgle", NULL }),
+	   "",
+	   OPTION_ERROR_STR,
+	   EXIT_FAILURE,
+	   "Unknown option: \"Option error\" message is printed");
+}
+
+/******************************************************************************
+              Test the executable file with a temporary directory
+******************************************************************************/
+
+/******************************************************************************
+                        Top-level --selftest functions
+******************************************************************************/
+
+/*
+ * get_execname() - Returns a pointer to an allocated string with the value 
+ * `execname` should be initialized with. `ename` is the value of the path to 
+ * the executable (the value of `progname`). If `ename` doesn't contain a slash 
+ * ('/'), no changes are made and a copy of `ename` is returned. If `ename` 
+ * contains a slash, a string with full path to the executable is returned. If 
+ * anything fails, it returns NULL.
+ */
+
+static char *get_execname(const char *ename)
+{
+	char *s = NULL, *p, *path = NULL, *retval = NULL;
+
+	assert(ename);
+	assert(*ename);
+
+	s = mystrdup(ename);
+	if (!s) {
+		failed_ok("mystrdup()"); /* gncov */
+		return NULL; /* gncov */
+	}
+	if (!(p = strrchr(s, '/')))
+		return s; /* gncov */
+	*p = '\0';
+	path = realpath(s, NULL);
+	if (!path) {
+		failed_ok("realpath()"); /* gncov */
+		goto cleanup; /* gncov */
+	}
+	retval = allocstr("%s/%s", path, ++p);
+	if (!retval)
+		failed_ok("allocstr()"); /* gncov */
+
+cleanup:
+	free(path);
+	free(s);
+
+	return retval;
+}
+
+/*
+ * functests_with_tempdir() - Tests functions that need a temporary directory 
+ * to store the output from stderr and stdout. Returns nothing.
+ */
+
+static void functests_with_tempdir(void)
+{
+	int result;
+
+	diag("Test functions that need a temporary directory for stdout and"
+	     " stderr");
+	result = mkdir(TMPDIR, 0755);
+	OK_SUCCESS(result, "mkdir " TMPDIR " for function tests");
+	if (result) {
+		diag("Cannot create directory \"%s\", skipping" /* gncov */
+		     " tests: %s", TMPDIR, strerror(errno)); /* gncov */
+		errno = 0; /* gncov */
+		return; /* gncov */
+	}
+
+	/* lst-demo.c */
+	test_myerror();
+
+	/* io.c */
+	test_file_exists();
+	test_create_file();
+	test_read_from_file();
+
+	/* strings.c */
+	test_re_check();
+
+	result = rmdir(TMPDIR);
+	OK_SUCCESS(result, "rmdir " TMPDIR " after function tests");
+	if (result) {
+		diag_errno(); /* gncov */
+		return; /* gncov */
+	}
+}
+
+/*
+ * tests_with_tempdir() - Executes tests on the executable with a temporary 
+ * directory. The temporary directory uses a standard name, defined in TMPDIR. 
+ * If the directory already exists or it's unable to create it, it aborts. 
+ * Returns nothing.
+ */
+
+static void tests_with_tempdir(void)
+{
+	int result;
+
+	result = mkdir(TMPDIR, 0777);
+	OK_SUCCESS(result, "%s(): Create temporary directory %s",
+	                   __func__, TMPDIR);
+	if (result) {
+		diag("Cannot create directory \"%s\", skipping" /* gncov */
+		     " tests: %s", TMPDIR, strerror(errno)); /* gncov */
+		errno = 0; /* gncov */
+		return; /* gncov */
+	}
+
+	OK_SUCCESS(rmdir(TMPDIR), "Delete temporary directory %s", TMPDIR);
+}
+
+/*
+ * test_functions() - Tests various functions directly. Returns nothing.
+ */
+
+static void test_functions(const struct Options *o)
+{
+	assert(o);
+
+	if (!o->testfunc)
+		return; /* gncov */
+
+	diag("Test selftest routines");
+
+	/* selftest.c */
+	test_diag();
+	test_gotexp_output();
+	test_valgrind_lines();
+
+	diag("Test various routines");
+
+	/* lst-demo.c */
+	test_std_strerror();
+
+	/* strings.c */
+	test_mystrdup();
+	test_allocstr();
+	test_count_substr();
+	test_str_replace();
+
+	functests_with_tempdir();
+}
+
+/*
+ * test_executable() - Runs various tests with the executable and verifies that 
+ * stdout, stderr and the return value are as expected. Returns nothing.
+ */
+
+static void test_executable(const struct Options *o)
+{
+	assert(o);
+	if (!o->testexec)
+		return; /* gncov */
+
+	diag("Test the executable");
+	test_valgrind_option(o);
+	print_version_info(o);
+	test_standard_options();
+	tests_with_tempdir();
+	print_version_info(o);
+}
+
+/*
+ * opt_selftest() - Runs internal testing to check that it works on the current 
+ * system. Executed if --selftest is used. Returns `EXIT_FAILURE` if any tests 
+ * fail. Otherwise, it returns `EXIT_SUCCESS`.
+ */
+
+int opt_selftest(char *main_execname, const struct Options *o)
+{
+	assert(main_execname);
+	assert(*main_execname);
+	assert(o);
+
+	execname = get_execname(main_execname);
+	diag("Running tests for %s %s (%s)",
+	     execname, EXEC_VERSION, EXEC_DATE);
+
+	test_ok_macros();
+	test_functions(o);
+	test_executable(o);
+
+	printf("1..%d\n", testnum);
+	if (failcount) {
+		diag("Looks like you failed %d test%s of %d.", /* gncov */
+		     failcount, (failcount == 1) ? "" : "s", /* gncov */
+		     testnum);
+	}
+	free(execname);
+
+	return failcount ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+#undef DIAG_DEBL
+#undef EXECSTR
+#undef OK_EQUAL
+#undef OK_EQUAL_L
+#undef OK_ERROR
+#undef OK_ERROR_L
+#undef OK_FAILURE
+#undef OK_FAILURE_L
+#undef OK_FALSE
+#undef OK_FALSE_L
+#undef OK_MEMCMP
+#undef OK_MEMCMP_L
+#undef OK_NOTEQUAL
+#undef OK_NOTEQUAL_L
+#undef OK_NOTNULL
+#undef OK_NOTNULL_L
+#undef OK_NULL
+#undef OK_NULL_L
+#undef OK_STRCMP
+#undef OK_STRCMP_L
+#undef OK_STRNCMP
+#undef OK_STRNCMP_L
+#undef OK_SUCCESS
+#undef OK_SUCCESS_L
+#undef OK_TRUE
+#undef OK_TRUE_L
+#undef OPTION_ERROR_STR
+#undef TMPDIR
+#undef TYPE_HELP_STR
+#undef Tc
+#undef chp
+#undef diag_errno
+#undef failed_ok
+#undef print_gotexp_double
+#undef print_gotexp_int
+#undef print_gotexp_nostr
+#undef print_gotexp_size_t
+#undef print_gotexp_ulong
+#undef rc
+#undef sc
+#undef tc
+#undef verify_output_files
+
+/* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */
