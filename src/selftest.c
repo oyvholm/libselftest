@@ -1881,47 +1881,4 @@ int opt_selftest(char *main_execname, const struct Options *o)
 	return failcount ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-#undef DIAG_DEBL
-#undef EXECSTR
-#undef OK_EQUAL
-#undef OK_EQUAL_L
-#undef OK_ERROR
-#undef OK_ERROR_L
-#undef OK_FAILURE
-#undef OK_FAILURE_L
-#undef OK_FALSE
-#undef OK_FALSE_L
-#undef OK_MEMCMP
-#undef OK_MEMCMP_L
-#undef OK_NOTEQUAL
-#undef OK_NOTEQUAL_L
-#undef OK_NOTNULL
-#undef OK_NOTNULL_L
-#undef OK_NULL
-#undef OK_NULL_L
-#undef OK_STRCMP
-#undef OK_STRCMP_L
-#undef OK_STRNCMP
-#undef OK_STRNCMP_L
-#undef OK_SUCCESS
-#undef OK_SUCCESS_L
-#undef OK_TRUE
-#undef OK_TRUE_L
-#undef OPTION_ERROR_STR
-#undef TMPDIR
-#undef TYPE_HELP_STR
-#undef Tc
-#undef chp
-#undef diag_errno
-#undef failed_ok
-#undef print_gotexp_double
-#undef print_gotexp_int
-#undef print_gotexp_nostr
-#undef print_gotexp_size_t
-#undef print_gotexp_ulong
-#undef rc
-#undef sc
-#undef tc
-#undef verify_output_files
-
 /* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */
