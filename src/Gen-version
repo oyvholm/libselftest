@@ -7,7 +7,7 @@
 # Generate version.h
 #
 # Author: Øyvind A. Holm <sunny@sunbase.org>
-# License: GNU General Public License version 2 or later.
+# License: GNU Lesser General Public License version 2.1 or later.
 #==============================================================================
 
 progname=Gen-version
