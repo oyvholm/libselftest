@@ -29,9 +29,7 @@ static struct Options opt;
 
 /*
  * opt_struct() - Returns a copy of `opt`. It can be used by functions outside 
- * this file who need to inspect the values of various members of `opt`. It is 
- * currently used by test_command() in the test suite for use with 
- * streams_exec().
+ * this file who need to inspect the values of various members of `opt`.
  */
 
 struct Options opt_struct(void)
@@ -273,6 +271,7 @@ static int choose_opt_action(struct Options *dest,
 			dest->selftest = true;
 		} else if (!strcmp(opts->name, "valgrind")) {
 			dest->valgrind = dest->selftest = true;
+			lst_use_valgrind = true;
 		} else if (!strcmp(opts->name, "version")) {
 			dest->version = true;
 		}

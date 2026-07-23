@@ -24,23 +24,15 @@
 #include "version.h"
 
 #include <assert.h>
-#include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>
-#include <regex.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
-#include "binbuf.h"
+#include "selftest.h"
 
 #if 1
 #  define DEBL  msg(2, "DEBL: %s, line %u in %s()", \
@@ -75,13 +67,6 @@ struct Options {
 	bool version;
 };
 
-struct streams {
-	struct binbuf in;
-	struct binbuf out;
-	struct binbuf err;
-	int ret;
-};
-
 /*
  * Public function prototypes
  */
@@ -95,23 +80,8 @@ int myerror(const char *format, ...);
 void init_opt(struct Options *dest);
 void set_opt_valgrind(bool b);
 
-/* io.c */
-bool file_exists(const char *s);
-void streams_init(struct streams *dest);
-void streams_free(struct streams *dest);
-char *read_from_fp(FILE *fp, struct binbuf *dest);
-char *read_from_file(const char *fname);
-int streams_exec(const struct Options *o, struct streams *dest, char *cmd[]);
-
-/* selftest.c */
+/* tests.c */
 int opt_selftest(char *execname, const struct Options *o);
-
-/* strings.c */
-char *allocstr_va(const char *format, va_list ap);
-char *allocstr(const char *format, ...);
-size_t count_substr(const char *s, const char *substr);
-char *str_replace(const char *s, const char *s1, const char *s2);
-int re_check(const char *pattern, const char *s);
 
 #endif /* ifndef _LST_DEMO_H */
 
