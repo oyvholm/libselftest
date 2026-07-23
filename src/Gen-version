@@ -57,6 +57,9 @@ test -n "$GCOV" && newdef GCOV
 # NDEBUG: Disable assert()
 test -n "$NDEBUG" && newdef NDEBUG
 
+# NO_SELFTEST: Compile without the built-in test suite
+test -n "$NO_SELFTEST" && newdef NO_SELFTEST
+
 # PROF: Compile with profiling code for gprof(1) to find bottlenecks
 test -n "$PROF" && newdef PROF
 

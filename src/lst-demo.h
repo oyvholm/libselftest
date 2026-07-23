@@ -32,7 +32,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef NO_SELFTEST
 #include "selftest.h"
+#endif
 
 #if 1
 #  define DEBL  msg(2, "DEBL: %s, line %u in %s()", \

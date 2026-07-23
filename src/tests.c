@@ -20,6 +20,8 @@
 
 #include "lst-demo.h"
 
+#ifndef NO_SELFTEST
+
 #define TYPE_HELP_STR  EXECSTR ": Type \"" EXECSTR " --help\" for help" \
                        " screen. Returning with value 1.\n"
 #define OPTION_ERROR_STR  EXECSTR ": Option error\n" TYPE_HELP_STR
@@ -371,6 +373,8 @@ static void test_executable(const struct Options *o)
 	print_version_info();
 }
 
+#endif /* ifndef NO_SELFTEST */
+
 /*
  * opt_selftest() - Runs internal testing to check that it works on the current 
  * system. Executed if --selftest is used. Returns `EXIT_FAILURE` if any tests 
@@ -383,6 +387,7 @@ int opt_selftest(char *main_execname, const struct Options *o)
 	assert(*main_execname);
 	assert(o);
 
+#ifndef NO_SELFTEST
 	lst_execname = get_execname(main_execname);
 	diag("Running tests for %s %s (%s)",
 	     lst_execname, EXEC_VERSION, EXEC_DATE);
@@ -396,6 +401,14 @@ int opt_selftest(char *main_execname, const struct Options *o)
 	free(lst_execname);
 
 	return selftest_failcount() ? EXIT_FAILURE : EXIT_SUCCESS;
+#else
+	fprintf(stdout, "# %s: This version is compiled without the built-in"
+	                " test suite\n", main_execname);
+	puts("1..0");
+	if (o) { } /* Suppress potential unused variable warning */
+
+	return EXIT_SUCCESS;
+#endif
 }
 
 /* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */

@@ -84,6 +84,10 @@ LONGLINES_FILES += Makefile
 MANPAGE = $(EXEC).1
 MANSRC = $(MANPAGE).man
 MAN_DATE = $$(grep EXEC_DATE version.h | cut -d '"' -f 2 | sed 's/-/\\\\-/g;')
+OBJFILES  =
+OBJFILES += $$([ -z "$(NO_SELFTEST)" ] && echo selftest.o)
+OBJFILES += lst-demo.o
+OBJFILES += tests.o
 OBJS  =
 OBJS += lst-demo.o
 OBJS += selftest.o
@@ -122,7 +126,7 @@ TESTABLE_LINES = $$(grep -E '^ +\#\#\#\#\#:' *.c.gcov \
 all: $(EXEC) $(MANPAGE)
 
 $(EXEC): $(OBJS)
-	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJS) $(LIBS)
+	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJFILES) $(LIBS)
 	[ -z "$(STRIP)" ] || strip $(EXEC)
 
 $(HTMLFILE): $(MANPAGE)
@@ -259,6 +263,8 @@ testall:
 .PHONY: testcomb
 testcomb:
 	$(MAKE) clean $(WHAT) NDEBUG=1
+	$(MAKE) clean $(WHAT) NO_SELFTEST=1
+	$(MAKE) clean $(WHAT) NDEBUG=1 NO_SELFTEST=1
 	$(MAKE) clean $(WHAT)
 
 .PHONY: testsrc

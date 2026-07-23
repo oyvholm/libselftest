@@ -189,6 +189,9 @@ static int print_version(const struct Options *o)
 #ifdef NDEBUG
 	printf("has NDEBUG\n");
 #endif
+#ifdef NO_SELFTEST
+	printf("has NO_SELFTEST\n");
+#endif
 #ifdef PROF
 	printf("has PROF\n");
 #endif
@@ -227,6 +230,7 @@ static int usage(const struct Options *o, const int retval)
 	       "    Print the software license.\n");
 	printf("  -q, --quiet\n"
 	       "    Be more quiet. Can be repeated to increase silence.\n");
+#ifndef NO_SELFTEST
 	printf("  --selftest [arg]\n"
 	       "    Run the built-in test suite. If specified, the argument"
 	       " can contain \n"
@@ -242,6 +246,7 @@ static int usage(const struct Options *o, const int retval)
 	       " Accepts \n"
 	       "    the same optional argument as --selftest, with the same"
 	       " defaults.\n");
+#endif
 	printf("  -v, --verbose\n"
 	       "    Increase level of verbosity. Can be repeated.\n");
 	printf("  --version\n"
@@ -271,7 +276,9 @@ static int choose_opt_action(struct Options *dest,
 			dest->selftest = true;
 		} else if (!strcmp(opts->name, "valgrind")) {
 			dest->valgrind = dest->selftest = true;
+#ifndef NO_SELFTEST
 			lst_use_valgrind = true;
+#endif
 		} else if (!strcmp(opts->name, "version")) {
 			dest->version = true;
 		}
@@ -314,6 +321,7 @@ void init_opt(struct Options *dest)
 	dest->version = false;
 }
 
+#ifndef NO_SELFTEST
 /*
  * set_opt_valgrind() - Changes the value of `opt.valgrind`. Used by 
  * test_valgrind_option() in case --valgrind is used and Valgrind isn't 
@@ -325,6 +333,7 @@ void set_opt_valgrind(bool b) /* gncov */
 	assert(b == false || b == true); /* gncov */
 	opt.valgrind = b; /* gncov */
 } /* gncov */
+#endif
 
 /*
  * parse_options() - Parses command line options and stores the result in 
