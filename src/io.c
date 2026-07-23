@@ -114,43 +114,6 @@ char *read_from_fp(FILE *fp, struct binbuf *dest)
 }
 
 /*
- * create_file() - Create file `file` and write the printf-formatted string 
- * `txt` to it. If any error occurred, it returns 1. Otherwise, it returns 0. 
- * If `txt` is NULL, an empty file is created and 0 is returned.
- */
-
-int create_file(const char *file, const char *txt, ...)
-{
-	int retval = 1;
-	FILE *fp = NULL;
-
-	assert(file);
-	assert(*file);
-
-	fp = fopen(file, "w");
-	if (!fp)
-		return 1;
-	if (txt) {
-		int i;
-		va_list ap;
-
-		va_start(ap, txt);
-		i = vfprintf(fp, txt, ap);
-		va_end(ap);
-		if (i < 0) {
-			failed("vfprintf()"); /* gncov */
-			goto out; /* gncov */
-		}
-	}
-	retval = 0;
-
-out:
-	fclose(fp);
-
-	return retval;
-}
-
-/*
  * read_from_file() - Read contents of file `fname` and return a pointer to a 
  * allocated string with the contents, or NULL if error.
  */

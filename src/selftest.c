@@ -1404,60 +1404,6 @@ static void test_file_exists(void)
 }
 
 /*
- * test_create_file() - Tests the create_file() function. Returns nothing.
- */
-
-static void test_create_file(void)
-{
-	const char *desc, *file, *data;
-	int res;
-	struct stat sb;
-	char *s;
-
-	diag("Test create_file()");
-
-	OK_TRUE(file_exists(TMPDIR), "%s exists", TMPDIR);
-	OK_FAILURE(create_file(TMPDIR, NULL),
-	           "create_file(%s), but it's already a directory", TMPDIR);
-	OK_EQUAL(errno, EISDIR, "errno is EISDIR");
-	if (errno != EISDIR)
-		diag_errno(); /* gncov */
-	errno = 0;
-
-	desc = "create_file() with NULL creates empty file";
-	file = TMPDIR "/emptyfile";
-	OK_SUCCESS(res = create_file(file, NULL), "%s (exec)", desc);
-	if (res) {
-		diag_errno(); /* gncov */
-		goto cleanup; /* gncov */
-	}
-	if (stat(file, &sb)) {
-		failed_ok("stat()"); /* gncov */
-		goto cleanup; /* gncov */
-	}
-	OK_EQUAL(sb.st_size, 0, "%s is empty", file);
-	OK_SUCCESS(remove(file), "Delete %s", file);
-
-	desc = "create_file() with test data";
-	data = "Test data\n";
-	file = TMPDIR "/datafile";
-	OK_SUCCESS(res = create_file(file, "%s", data), "%s (exec)", desc);
-	if (res) {
-		diag_errno(); /* gncov */
-		goto cleanup; /* gncov */
-	}
-	OK_NOTNULL(s = read_from_file(file), "Read data from file");
-	if (!s)
-		diag_errno(); /* gncov */
-	else
-		OK_STRCMP(s, data, "Data from file is correct");
-	free(s);
-
-cleanup:
-	OK_SUCCESS(remove(file), "Delete %s", file);
-}
-
-/*
  * test_read_from_file() - Tests the read_from_file() function. Returns 
  * nothing.
  */
@@ -1741,7 +1687,6 @@ static void functests_with_tempdir(void)
 
 	/* io.c */
 	test_file_exists();
-	test_create_file();
 	test_read_from_file();
 
 	/* strings.c */
