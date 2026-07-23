@@ -403,7 +403,7 @@ static int diag(const char *format, ...)
 
 /*
  * gotexp_output() - Generates the output used by print_gotexp(). Returns NULL 
- * if allocstr() or mystrdup() fails. Otherwise, it returns a pointer to an 
+ * if allocstr() or strdup() fails. Otherwise, it returns a pointer to an 
  * allocated string with the output.
  */
 
@@ -412,9 +412,9 @@ static char *gotexp_output(const char *got, const char *exp)
 	char *s;
 
 	if (got == exp || (got && exp && !strcmp(got, exp))) {
-		s = mystrdup("");
+		s = strdup("");
 		if (!s)
-			failed_ok("mystrdup()"); /* gncov */
+			failed_ok("strdup()"); /* gncov */
 	} else {
 		s = allocstr("         got: '%s'\n"
 		             "    expected: '%s'", no_null(got), no_null(exp));
@@ -998,13 +998,13 @@ static void chk_go(const int linenum, const char *got, const char *exp,
 	}
 	if (exp_got == exp_exp
 	    || (exp_got && exp_exp && !strcmp(exp_got, exp_exp))) {
-		exp_str = mystrdup("");
+		exp_str = strdup("");
 	} else {
 		exp_str = allocstr("         got: '%s'\n"
 		                   "    expected: '%s'", exp_got, exp_exp);
 	}
 	if (!exp_str) {
-		failed_ok("mystrdup() or allocstr()"); /* gncov */
+		failed_ok("strdup() or allocstr()"); /* gncov */
 		free(s); /* gncov */
 		return; /* gncov */
 	}
@@ -1105,27 +1105,6 @@ static void test_std_strerror(void)
 }
 
                               /*** strings.c ***/
-
-/*
- * test_mystrdup() - Tests the mystrdup() function. Returns nothing.
- */
-
-static void test_mystrdup(void)
-{
-	const char *txt = "Test string";
-	char *s;
-
-	diag("Test mystrdup()");
-	OK_NULL(mystrdup(NULL), "mystrdup(NULL) == NULL");
-
-	s = mystrdup(txt);
-	if (!s) {
-		failed_ok("mystrdup()"); /* gncov */
-		return; /* gncov */
-	}
-	OK_STRCMP(s, txt, "mystrdup(): Strings are identical");
-	free(s);
-}
 
 /*
  * test_allocstr() - Tests the allocstr() function. Returns nothing.
@@ -1713,9 +1692,9 @@ static char *get_execname(const char *ename)
 	assert(ename);
 	assert(*ename);
 
-	s = mystrdup(ename);
+	s = strdup(ename);
 	if (!s) {
-		failed_ok("mystrdup()"); /* gncov */
+		failed_ok("strdup()"); /* gncov */
 		return NULL; /* gncov */
 	}
 	if (!(p = strrchr(s, '/')))
@@ -1824,7 +1803,6 @@ static void test_functions(const struct Options *o)
 	test_std_strerror();
 
 	/* strings.c */
-	test_mystrdup();
 	test_allocstr();
 	test_count_substr();
 	test_str_replace();
