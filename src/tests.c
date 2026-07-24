@@ -82,9 +82,9 @@ static int init_testvars(void)
  * value from a parent function. Returns nothing.
  */
 
-static void cleanup_tempdir(const int linenum)
+static void cleanup_tempdir(const char *file, const int linenum)
 {
-	lst_cleanup_tempdir(linenum);
+	lst_cleanup_tempdir(file, linenum);
 }
 
 /******************************************************************************
@@ -145,7 +145,7 @@ static void test_myerror(void)
 	verify_output_files(desc, "", exp_stderr);
 	OK_EQUAL(res, len_stderr, "%s (retval)", desc);
 	print_gotexp_int(res, len_stderr);
-	cleanup_tempdir(__LINE__);
+	cleanup_tempdir(__FILE__, __LINE__);
 	free(exp_stderr);
 }
 

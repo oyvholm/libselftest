@@ -129,55 +129,57 @@
  *           OK_TRUE(errcount < 10, "Error count %d is below 10", errcount);
  */
 
-#define OK_EQUAL_L(a, b, linenum, desc, ...)  \
-        ok(!((a) == (b)), (linenum), (desc), ##__VA_ARGS__)
-#define OK_ERROR_L(linenum, msg, ...)  \
-        ok(1, (linenum), (msg), ##__VA_ARGS__)
-#define OK_FAILURE_L(func, linenum, desc, ...)  \
-        ok(!(func), (linenum), (desc), ##__VA_ARGS__)
-#define OK_FALSE_L(val, linenum, desc, ...)  \
-        ok(!!(val), (linenum), (desc), ##__VA_ARGS__)
-#define OK_MEMCMP_L(a, b, len, linenum, desc, ...)  \
-        ok(!!memcmp((a), (b), (len)), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NOTEQUAL_L(a, b, linenum, desc, ...)  \
-        ok(!((a) != (b)), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NOTNULL_L(p, linenum, desc, ...)  \
-        ok(!(p), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NULL_L(p, linenum, desc, ...)  \
-        ok(!!(p), (linenum), (desc), ##__VA_ARGS__)
-#define OK_STRCMP_L(a, b, linenum, desc, ...)  \
-        ok(!!strcmp((a), (b)), (linenum), (desc), ##__VA_ARGS__)
-#define OK_STRNCMP_L(a, b, len, linenum, desc, ...)  \
-        ok(!!strncmp((a), (b), (len)), (linenum), (desc), ##__VA_ARGS__)
-#define OK_SUCCESS_L(func, linenum, desc, ...)  \
-        ok(!!(func), (linenum), (desc), ##__VA_ARGS__)
-#define OK_TRUE_L(val, linenum, desc, ...)  \
-        ok(!(val), (linenum), (desc), ##__VA_ARGS__)
+#define OK_EQUAL_L(a, b, file, linenum, desc, ...)  \
+        ok(!((a) == (b)), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_ERROR_L(file, linenum, msg, ...)  \
+        ok(1, (file), (linenum), (msg), ##__VA_ARGS__)
+#define OK_FAILURE_L(func, file, linenum, desc, ...)  \
+        ok(!(func), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_FALSE_L(val, file, linenum, desc, ...)  \
+        ok(!!(val), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_MEMCMP_L(a, b, len, file, linenum, desc, ...)  \
+        ok(!!memcmp((a), (b), (len)), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NOTEQUAL_L(a, b, file, linenum, desc, ...)  \
+        ok(!((a) != (b)), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NOTNULL_L(p, file, linenum, desc, ...)  \
+        ok(!(p), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_NULL_L(p, file, linenum, desc, ...)  \
+        ok(!!(p), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_STRCMP_L(a, b, file, linenum, desc, ...)  \
+        ok(!!strcmp((a), (b)), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_STRNCMP_L(a, b, len, file, linenum, desc, ...)  \
+        ok(!!strncmp((a), (b), (len)), (file), (linenum), \
+           (desc), ##__VA_ARGS__)
+#define OK_SUCCESS_L(func, file, linenum, desc, ...)  \
+        ok(!!(func), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_TRUE_L(val, file, linenum, desc, ...)  \
+        ok(!(val), (file), (linenum), (desc), ##__VA_ARGS__)
 
 #define OK_EQUAL(a, b, desc, ...)  \
-        OK_EQUAL_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+        OK_EQUAL_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_ERROR(msg, ...)  \
-        OK_ERROR_L(__LINE__, (msg), ##__VA_ARGS__)
+        OK_ERROR_L(__FILE__, __LINE__, (msg), ##__VA_ARGS__)
 #define OK_FAILURE(func, desc, ...)  \
-        OK_FAILURE_L((func), __LINE__, (desc), ##__VA_ARGS__)
+        OK_FAILURE_L((func), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_FALSE(val, desc, ...)  \
-        OK_FALSE_L((val), __LINE__, (desc), ##__VA_ARGS__)
+        OK_FALSE_L((val), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_MEMCMP(a, b, len, desc, ...)  \
-        OK_MEMCMP_L((a), (b), (len), __LINE__, (desc), ##__VA_ARGS__)
+        OK_MEMCMP_L((a), (b), (len), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_NOTEQUAL(a, b, desc, ...)  \
-        OK_NOTEQUAL_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+        OK_NOTEQUAL_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_NOTNULL(p, desc, ...)  \
-        OK_NOTNULL_L((p), __LINE__, (desc), ##__VA_ARGS__)
+        OK_NOTNULL_L((p), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_NULL(p, desc, ...)  \
-        OK_NULL_L((p), __LINE__, (desc), ##__VA_ARGS__)
+        OK_NULL_L((p), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_STRCMP(a, b, desc, ...)  \
-        OK_STRCMP_L((a), (b), __LINE__, (desc), ##__VA_ARGS__)
+        OK_STRCMP_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_STRNCMP(a, b, len, desc, ...)  \
-        OK_STRNCMP_L((a), (b), (len), __LINE__, (desc), ##__VA_ARGS__)
+        OK_STRNCMP_L((a), (b), (len), __FILE__, __LINE__, \
+                     (desc), ##__VA_ARGS__)
 #define OK_SUCCESS(func, desc, ...)  \
-        OK_SUCCESS_L((func), __LINE__, (desc), ##__VA_ARGS__)
+        OK_SUCCESS_L((func), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 #define OK_TRUE(val, desc, ...)  \
-        OK_TRUE_L((val), __LINE__, (desc), ##__VA_ARGS__)
+        OK_TRUE_L((val), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
 
 #define no_null(a)  ((a) ? (a) : "(null)")
 
@@ -226,16 +228,17 @@
 #define LST_TMPDIR  ".selftest.tmp"
 
 #define sc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        sc_func(__LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
+        sc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
                 (exp_stderr), (desc), ##__VA_ARGS__);
 #define tc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        tc_func(__LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
+        tc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
                 (exp_stderr), (desc), ##__VA_ARGS__);
 #define rc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        rc_func(__LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
+        rc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
                 (exp_stderr), (desc), ##__VA_ARGS__);
 #define verify_output_files(desc, exp_stdout, exp_stderr)  \
-        verify_output_files_func(__LINE__, desc, exp_stdout, exp_stderr)
+        verify_output_files_func(__FILE__, __LINE__, \
+                                 desc, exp_stdout, exp_stderr)
 
 struct lst_binbuf {
 	size_t alloc;
@@ -273,24 +276,27 @@ size_t lst_count_substr(const char *s, const char *substr);
 char *lst_str_replace(const char *s, const char *s1, const char *s2);
 int lst_re_check(const char *pattern, const char *s);
 void bail_out(const char *msg, ...);
-int ok_va(const int i, const int linenum, const char *desc, va_list ap);
-int ok(const int i, const int linenum, const char *desc, ...);
+int ok_va(const int i, const char *file, const int linenum,
+          const char *desc, va_list ap);
+int ok(const int i, const char *file, const int linenum,
+       const char *desc, ...);
 int diag(const char *format, ...);
 int print_gotexp(const char *got, const char *exp);
-void sc_func(const int linenum, const bool valgrind, char *cmd[],
-             const char *exp_stdout, const char *exp_stderr,
+void sc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[], const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
-void tc_func(const int linenum, const bool valgrind, char *cmd[],
-             const char *exp_stdout, const char *exp_stderr,
+void tc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[], const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
-void rc_func(const int linenum, const bool valgrind, char *cmd[],
-             const char *exp_stdout, const char *exp_stderr,
+void rc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[], const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
 int lst_init_output_files(void);
 void lst_restore_output_files(void);
-void verify_output_files_func(const int linenum, const char *desc,
+void verify_output_files_func(const char *file, const int linenum,
+                              const char *desc,
                               const char *exp_stdout, const char *exp_stderr);
-void lst_cleanup_tempdir(const int linenum);
+void lst_cleanup_tempdir(const char *file, const int linenum);
 int selftest_failcount(void);
 int print_selftest_footer(void);
 char *get_execname(const char *ename);

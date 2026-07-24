@@ -689,18 +689,22 @@ void bail_out(const char *msg, ...) /* gncov */
  * Returns 0 if `i` is 0, otherwise it returns 1.
  */
 
-int ok_va(const int i, const int linenum, const char *desc, va_list ap)
+int ok_va(const int i, const char *file, const int linenum,
+          const char *desc, va_list ap)
 {
 	va_list ap_copy;
 	char *s, *s2;
 
+	assert(file);
+	assert(*file);
 	assert(desc);
 	assert(*desc);
 
 	if (!desc)
 		bail_out("%s(): desc is NULL", __func__); /* gncov */
 
-	printf("%sok %d - %d: ", (i ? "not " : ""), ++lst_testnum, linenum);
+	printf("%sok %d - %s:%d: ",
+	       (i ? "not " : ""), ++lst_testnum, file, linenum);
 	va_copy(ap_copy, ap);
 	s = lst_allocstr_va(desc, ap_copy);
 	va_end(ap_copy);
@@ -726,10 +730,12 @@ int ok_va(const int i, const int linenum, const char *desc, va_list ap)
  * for more info. Returns 0 if `i` is 0, otherwise it returns 1.
  */
 
-int ok(const int i, const int linenum, const char *desc, ...)
+int ok(const int i, const char *file, const int linenum, const char *desc, ...)
 {
 	va_list ap;
 
+	assert(file);
+	assert(*file);
 	assert(desc);
 	assert(*desc);
 
@@ -737,7 +743,7 @@ int ok(const int i, const int linenum, const char *desc, ...)
 		bail_out("%s(): desc is NULL", __func__); /* gncov */
 
 	va_start(ap, desc);
-	ok_va(i, linenum, desc, ap);
+	ok_va(i, file, linenum, desc, ap);
 	va_end(ap);
 
 	return !!i;
@@ -960,20 +966,24 @@ static int tc_cmp(const int type, const char *got, const char *exp)
  * `exp_retval`. Returns nothing.
  */
 
-static void test_command(const int linenum, const bool valgrind,
-                         const char type, char *cmd[],
-                         const char *exp_stdout, const char *exp_stderr,
-                         const int exp_retval, const char *desc, va_list ap)
+static void test_command(const char *file, const int linenum,
+                         const bool valgrind, const char type,
+                         char *cmd[], const char *exp_stdout,
+                         const char *exp_stderr, const int exp_retval,
+                         const char *desc, va_list ap)
 {
 	struct lst_streams ss;
 	char *e_stdout, *e_stderr, *descbuf;
 
+	assert(file);
+	assert(*file);
 	assert(cmd);
 	assert(*cmd);
 	assert(desc);
 	assert(*desc);
 	if (!cmd) {
-		OK_ERROR_L(linenum, "%s(): cmd is NULL", __func__); /* gncov */
+		OK_ERROR_L(file, linenum, "%s(): cmd is NULL", /* gncov */
+		           __func__);
 		return; /* gncov */
 	}
 
@@ -987,24 +997,24 @@ static void test_command(const int linenum, const bool valgrind,
 	lst_streams_init(&ss);
 	lst_streams_exec(valgrind, &ss, cmd);
 	if (e_stdout) {
-		OK_SUCCESS_L(tc_cmp(type, ss.out.buf, e_stdout), linenum,
+		OK_SUCCESS_L(tc_cmp(type, ss.out.buf, e_stdout), file, linenum,
 		             "%s (stdout)", descbuf);
 		if (tc_cmp(type, ss.out.buf, e_stdout))
 			print_gotexp(ss.out.buf, e_stdout); /* gncov */
 	}
 	if (e_stderr) {
-		OK_SUCCESS_L(tc_cmp(type, ss.err.buf, e_stderr), linenum,
+		OK_SUCCESS_L(tc_cmp(type, ss.err.buf, e_stderr), file, linenum,
 		             "%s (stderr)", descbuf);
 		if (tc_cmp(type, ss.err.buf, e_stderr))
 			print_gotexp(ss.err.buf, e_stderr); /* gncov */
 	}
-	OK_EQUAL_L(ss.ret, exp_retval, linenum, "%s (retval)", descbuf);
+	OK_EQUAL_L(ss.ret, exp_retval, file, linenum, "%s (retval)", descbuf);
 	print_gotexp_int(ss.ret, exp_retval);
 	free(descbuf);
 	free(e_stderr);
 	free(e_stdout);
 	if (valgrind_lines(ss.err.buf))
-		OK_ERROR_L(linenum, "Found valgrind output"); /* gncov */
+		OK_ERROR_L(file, linenum, "Found valgrind output"); /* gncov */
 	lst_streams_free(&ss);
 }
 
@@ -1016,19 +1026,22 @@ static void test_command(const int linenum, const bool valgrind,
  * Returns nothing.
  */
 
-void sc_func(const int linenum, const bool valgrind, char *cmd[],
+void sc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[],
              const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
 	va_list ap;
 
+	assert(file);
+	assert(*file);
 	assert(cmd);
 	assert(*cmd);
 	assert(desc);
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(linenum, valgrind, 0, cmd, exp_stdout, exp_stderr,
+	test_command(file, linenum, valgrind, 0, cmd, exp_stdout, exp_stderr,
 	             exp_retval, desc, ap);
 	va_end(ap);
 }
@@ -1041,19 +1054,21 @@ void sc_func(const int linenum, const bool valgrind, char *cmd[],
  * Returns nothing.
  */
 
-void tc_func(const int linenum, const bool valgrind, char *cmd[],
-             const char *exp_stdout, const char *exp_stderr,
+void tc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[], const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
 	va_list ap;
 
+	assert(file);
+	assert(*file);
 	assert(cmd);
 	assert(*cmd);
 	assert(desc);
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(linenum, valgrind, 1, cmd, exp_stdout, exp_stderr,
+	test_command(file, linenum, valgrind, 1, cmd, exp_stdout, exp_stderr,
 	             exp_retval, desc, ap);
 	va_end(ap);
 }
@@ -1066,19 +1081,21 @@ void tc_func(const int linenum, const bool valgrind, char *cmd[],
  * nothing.
  */
 
-void rc_func(const int linenum, const bool valgrind, char *cmd[],
-             const char *exp_stdout, const char *exp_stderr,
+void rc_func(const char *file, const int linenum, const bool valgrind,
+             char *cmd[], const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
 	va_list ap;
 
+	assert(file);
+	assert(*file);
 	assert(cmd);
 	assert(*cmd);
 	assert(desc);
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(linenum, valgrind, 2, cmd, exp_stdout, exp_stderr,
+	test_command(file, linenum, valgrind, 2, cmd, exp_stdout, exp_stderr,
 	             exp_retval, desc, ap);
 	va_end(ap);
 }
@@ -1206,18 +1223,21 @@ void lst_restore_output_files(void)
  * nothing.
  */
 
-void verify_output_files_func(const int linenum, const char *desc,
+void verify_output_files_func(const char *file, const int linenum,
+                              const char *desc,
                               const char *exp_stdout, const char *exp_stderr)
 {
 	char *result;
 
+	assert(file);
+	assert(*file);
 	assert(desc);
 	assert(*desc);
 
 	if (exp_stdout) {
 		result = lst_read_from_file(stdout_file);
 		if (result) {
-			OK_STRCMP_L(result, exp_stdout, linenum,
+			OK_STRCMP_L(result, exp_stdout, file, linenum,
 			            "%s (stdout)", desc);
 			print_gotexp(result, exp_stdout);
 			free(result);
@@ -1230,7 +1250,7 @@ void verify_output_files_func(const int linenum, const char *desc,
 	if (exp_stderr) {
 		result = lst_read_from_file(stderr_file);
 		if (result) {
-			OK_STRCMP_L(result, exp_stderr, linenum,
+			OK_STRCMP_L(result, exp_stderr, file, linenum,
 			            "%s (stderr)", desc);
 			print_gotexp(result, exp_stderr);
 			free(result);
@@ -1247,13 +1267,16 @@ void verify_output_files_func(const int linenum, const char *desc,
  * the `linenum` value from a parent function. Returns nothing.
  */
 
-void lst_cleanup_tempdir(const int linenum)
+void lst_cleanup_tempdir(const char *file, const int linenum)
 {
+	assert(file);
+	assert(*file);
+
 	if (lst_file_exists(stderr_file))
-		OK_SUCCESS_L(remove(stderr_file), linenum,
+		OK_SUCCESS_L(remove(stderr_file), file, linenum,
 		             "Delete %s", stderr_file);
 	if (lst_file_exists(stdout_file))
-		OK_SUCCESS_L(remove(stdout_file), linenum,
+		OK_SUCCESS_L(remove(stdout_file), file, linenum,
 		             "Delete %s", stdout_file);
 }
 
@@ -1495,16 +1518,20 @@ cleanup:
  * the test description. Returns nothing.
  */
 
-static void lst_chk_cs(const int linenum, const char *s, const char *substr,
-                       const size_t count, const char *desc)
+static void lst_chk_cs(const char *file, const int linenum, const char *s,
+                       const char *substr, const size_t count,
+                       const char *desc)
 {
 	size_t result;
 
+	assert(file);
+	assert(*file);
 	assert(desc);
 	assert(*desc);
 
 	result = lst_count_substr(s, substr);
-	OK_EQUAL_L(result, count, linenum, "lst_count_substr(): %s", desc);
+	OK_EQUAL_L(result, count, file, linenum,
+	           "lst_count_substr(): %s", desc);
 	print_gotexp_size_t(result, count);
 }
 
@@ -1520,9 +1547,9 @@ static void test_lst_count_substr(void)
 
 	diag("Test lst_count_substr()");
 
-#define lst_chk_cs(s, substr, count, desc)  lst_chk_cs(__LINE__, (s), \
-                                                       (substr), (count), \
-                                                       (desc))
+#define lst_chk_cs(s, substr, count, desc)  lst_chk_cs(__FILE__, __LINE__, \
+                                                       (s), (substr), \
+                                                       (count), (desc))
 	lst_chk_cs("", "", 0, "s and substr are empty");
 	lst_chk_cs("", "a", 0, "s is empty");
 	lst_chk_cs("aaa", "", 0, "substr is empty");
@@ -1564,20 +1591,23 @@ static void test_lst_count_substr(void)
  * `s2` in the string `s`, resulting in the string `exp`. Returns nothing.
  */
 
-static void lst_chk_sr(const int linenum, const char *s, const char *s1,
-                       const char *s2, const char *exp, const char *desc)
+static void lst_chk_sr(const char *file, const int linenum, const char *s,
+                       const char *s1, const char *s2, const char *exp,
+                       const char *desc)
 {
 	char *result;
 
+	assert(file);
+	assert(*file);
 	assert(desc);
 	assert(*desc);
 
 	result = lst_str_replace(s, s1, s2);
 	if (!result || !exp)
-		OK_EQUAL_L(result, exp, linenum,
+		OK_EQUAL_L(result, exp, file, linenum,
 		           "lst_str_replace(): %s", desc);
 	else
-		OK_STRCMP_L(result, exp, linenum,
+		OK_STRCMP_L(result, exp, file, linenum,
 		            "lst_str_replace(): %s", desc);
 	print_gotexp(result, exp);
 	free(result);
@@ -1595,8 +1625,8 @@ static void test_lst_str_replace(void)
 
 	diag("Test lst_str_replace()");
 
-#define lst_chk_sr(s, s1, s2, exp, desc)  lst_chk_sr(__LINE__, (s), (s1), \
-                                                     (s2), (exp), (desc))
+#define lst_chk_sr(s, s1, s2, exp, desc)  lst_chk_sr(__FILE__, __LINE__, (s), \
+                                                     (s1), (s2), (exp), (desc))
 	lst_chk_sr("", "", "", "", "s, s1, and s2 are empty");
 	lst_chk_sr("abc", "", "b", "abc", "s1 is empty");
 	lst_chk_sr("", "a", "b", "", "s is empty");
@@ -1738,11 +1768,14 @@ static void test_diag(void)
  * identical. Returns nothing.
  */
 
-static void lst_chk_go(const int linenum, const char *got, const char *exp,
+static void lst_chk_go(const char *file, const int linenum,
+                       const char *got, const char *exp,
                        const char *exp_got, const char *exp_exp)
 {
 	char *s, *exp_str;
 
+	assert(file);
+	assert(*file);
 	assert(exp_got);
 	assert(exp_exp);
 
@@ -1763,7 +1796,7 @@ static void lst_chk_go(const int linenum, const char *got, const char *exp,
 		free(s); /* gncov */
 		return; /* gncov */
 	}
-	OK_STRCMP_L(s, exp_str, linenum, "gotexp_output(\"%s\", \"%s\")",
+	OK_STRCMP_L(s, exp_str, file, linenum, "gotexp_output(\"%s\", \"%s\")",
 	            no_null(got), no_null(exp));
 	if (strcmp(s, exp_str))
 		diag("Got:\n%s\nExpected:\n%s", s, exp_str); /* gncov */
@@ -1780,7 +1813,8 @@ static void test_gotexp_output(void)
 {
 	diag("Test gotexp_output()");
 
-#define lst_chk_go(got, exp, exp_got, exp_exp)  lst_chk_go(__LINE__, (got), \
+#define lst_chk_go(got, exp, exp_got, exp_exp)  lst_chk_go(__FILE__, \
+                                                           __LINE__, (got), \
                                                            (exp), (exp_got), \
                                                            (exp_exp))
 	lst_chk_go("", "", "", "");
@@ -1946,9 +1980,13 @@ static void test_lst_read_from_file(void)
  * `lst_re_check(pattern, s)` succeeds and returns 0.
  */
 
-static void lst_chk_rc(const int linenum, const char *pattern, const char *s)
+static void lst_chk_rc(const char *file, const int linenum,
+                       const char *pattern, const char *s)
 {
-	OK_SUCCESS_L(lst_re_check(pattern, s), linenum,
+	assert(file);
+	assert(*file);
+
+	OK_SUCCESS_L(lst_re_check(pattern, s), file, linenum,
 	             "lst_re_check(\"%s\", \"%s\")", pattern, s);
 }
 
@@ -1963,7 +2001,7 @@ static void test_lst_re_check(void)
 
 	diag("Test lst_re_check()");
 
-#define lst_chk_rc(pattern, s)  lst_chk_rc(__LINE__, (pattern), (s))
+#define lst_chk_rc(pattern, s)  lst_chk_rc(__FILE__, __LINE__, (pattern), (s))
 	lst_chk_rc("^$", "");
 	lst_chk_rc("abc.*yz", "123abcdefghixyz321");
 	lst_chk_rc("with\nlf", "123with\nlf321");
@@ -1998,7 +2036,7 @@ static void test_lst_re_check(void)
 cleanup:
 	free(err_s);
 	free(exp);
-	lst_cleanup_tempdir(__LINE__);
+	lst_cleanup_tempdir(__FILE__, __LINE__);
 }
 
 /******************************************************************************
