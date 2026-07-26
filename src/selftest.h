@@ -38,36 +38,36 @@
 #include <unistd.h>
 
 /*
- * Main test macros, meant to be a human-friendly frontend against ok(). Unlike 
- * most other testing frameworks that return 1 for success and 0 for error, 
- * these functions and macros return 0 for success and 1 if the test fails. The 
- * reasoning behind this is:
+ * Main test macros, meant to be a human-friendly frontend against lst_ok(). 
+ * Unlike most other testing frameworks that return 1 for success and 0 for 
+ * error, these functions and macros return 0 for success and 1 if the test 
+ * fails. The reasoning behind this is:
  *
  * We don't look for successful tests, but tests that fail. By returning 1 when 
  * the test fails, the return value can be used to increase a fail counter to 
  * find the total number of failed tests, or take special action based on the 
  * outcome of a single test or a series of previous tests. If the macros or 
- * ok() had returned 0 for failure and non-zero for success, we would need an 
- * additional counter to keep track of the number of executed tests and then 
+ * lst_ok() had returned 0 for failure and non-zero for success, we would need 
+ * an additional counter to keep track of the number of executed tests and then 
  * use subtraction to see if any tests failed. Besides, C typically returns 0 
  * for success and non-zero for failure, so this convention should feel natural 
- * to C programmers. The `ok(expr, desc, ...)` function is a frontend to 
- * `ok_va()`, which evaluates `expr`, printing an "ok" line to stdout if `expr` 
- * is 0 (success, returning 0) or "not ok" if `expr` is non-zero (failure, 
- * returning 1), using `desc` with any additional arguments for the test 
- * description.
+ * to C programmers. The `lst_ok(expr, desc, ...)` function is a frontend to 
+ * `lst_ok_va()`, which evaluates `expr`, printing an "ok" line to stdout if 
+ * `expr` is 0 (success, returning 0) or "not ok" if `expr` is non-zero 
+ * (failure, returning 1), using `desc` with any additional arguments for the 
+ * test description.
  *
  * All macros have a description parameter at the end which supports printf() 
  * sequences and additional optional arguments.
  *
  * In addition to the regular macros, the same macros exist as `OK_*_L()` 
  * variants. The functionality is identical, but they have an extra `linenum` 
- * parameter before the `desc` parameter. This is used to communicate to ok() 
- * and ok_va() the line number of the test. If the test is inside a helper 
- * function that's repeated many times, the line number inside the helper 
- * function is sent to ok(), and that's not what's usually wanted. By having a 
- * `const int linenumber` parameter in the helper function, the scopes above 
- * can deliver the actual line the test is executed from.
+ * parameter before the `desc` parameter. This is used to communicate to 
+ * lst_ok() and lst_ok_va() the line number of the test. If the test is inside 
+ * a helper function that's repeated many times, the line number inside the 
+ * helper function is sent to lst_ok(), and that's not what's usually wanted. 
+ * By having a `const int linenumber` parameter in the helper function, the 
+ * scopes above can deliver the actual line the test is executed from.
  *
  * This is a list of the various macros, with a description of which types of 
  * tests they're intended for, and the criteria for success:
@@ -130,29 +130,29 @@
  */
 
 #define OK_EQUAL_L(a, b, file, linenum, ...)  \
-        ok(!((a) == (b)), (file), (linenum), __VA_ARGS__)
+        lst_ok(!((a) == (b)), (file), (linenum), __VA_ARGS__)
 #define OK_ERROR_L(file, linenum, ...)  \
-        ok(1, (file), (linenum), __VA_ARGS__)
+        lst_ok(1, (file), (linenum), __VA_ARGS__)
 #define OK_FAILURE_L(func, file, linenum, ...)  \
-        ok(!(func), (file), (linenum), __VA_ARGS__)
+        lst_ok(!(func), (file), (linenum), __VA_ARGS__)
 #define OK_FALSE_L(val, file, linenum, ...)  \
-        ok(!!(val), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!(val), (file), (linenum), __VA_ARGS__)
 #define OK_MEMCMP_L(a, b, len, file, linenum, ...)  \
-        ok(!!memcmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!memcmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
 #define OK_NOTEQUAL_L(a, b, file, linenum, ...)  \
-        ok(!((a) != (b)), (file), (linenum), __VA_ARGS__)
+        lst_ok(!((a) != (b)), (file), (linenum), __VA_ARGS__)
 #define OK_NOTNULL_L(p, file, linenum, ...)  \
-        ok(!(p), (file), (linenum), __VA_ARGS__)
+        lst_ok(!(p), (file), (linenum), __VA_ARGS__)
 #define OK_NULL_L(p, file, linenum, ...)  \
-        ok(!!(p), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!(p), (file), (linenum), __VA_ARGS__)
 #define OK_STRCMP_L(a, b, file, linenum, ...)  \
-        ok(!!strcmp((a), (b)), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!strcmp((a), (b)), (file), (linenum), __VA_ARGS__)
 #define OK_STRNCMP_L(a, b, len, file, linenum, ...)  \
-        ok(!!strncmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!strncmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
 #define OK_SUCCESS_L(func, file, linenum, ...)  \
-        ok(!!(func), (file), (linenum), __VA_ARGS__)
+        lst_ok(!!(func), (file), (linenum), __VA_ARGS__)
 #define OK_TRUE_L(val, file, linenum, ...)  \
-        ok(!(val), (file), (linenum), __VA_ARGS__)
+        lst_ok(!(val), (file), (linenum), __VA_ARGS__)
 
 #define OK_EQUAL(a, b, ...)  \
         OK_EQUAL_L((a), (b), __FILE__, __LINE__, __VA_ARGS__)
@@ -273,10 +273,10 @@ size_t lst_count_substr(const char *s, const char *substr);
 char *lst_str_replace(const char *s, const char *s1, const char *s2);
 int lst_re_check(const char *pattern, const char *s);
 void bail_out(const char *msg, ...);
-int ok_va(const int i, const char *file, const int linenum,
-          const char *desc, va_list ap);
-int ok(const int i, const char *file, const int linenum,
-       const char *desc, ...);
+int lst_ok_va(const int i, const char *file, const int linenum,
+              const char *desc, va_list ap);
+int lst_ok(const int i, const char *file, const int linenum,
+           const char *desc, ...);
 int diag(const char *format, ...);
 int print_gotexp(const char *got, const char *exp);
 void sc_func(const char *file, const int linenum, char *cmd[],

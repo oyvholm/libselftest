@@ -681,15 +681,15 @@ void bail_out(const char *msg, ...) /* gncov */
 }
 
 /*
- * ok_va() - Prints a log line to stdout. If `i` is 0, an "ok" line is printed, 
- * otherwise a "not ok" line is printed. `desc` is the test description and can 
- * use printf sequences.
+ * lst_ok_va() - Prints a log line to stdout. If `i` is 0, an "ok" line is 
+ * printed, otherwise a "not ok" line is printed. `desc` is the test 
+ * description and can use printf sequences.
  *
  * Returns 0 if `i` is 0, otherwise it returns 1.
  */
 
-int ok_va(const int i, const char *file, const int linenum,
-          const char *desc, va_list ap)
+int lst_ok_va(const int i, const char *file, const int linenum,
+              const char *desc, va_list ap)
 {
 	va_list ap_copy;
 	char *s, *s2;
@@ -725,11 +725,12 @@ int ok_va(const int i, const char *file, const int linenum,
 }
 
 /*
- * ok() - Frontend against ok_va(). Refer to the description for that function 
- * for more info. Returns 0 if `i` is 0, otherwise it returns 1.
+ * lst_ok() - Frontend against lst_ok_va(). Refer to the description for that 
+ * function for more info. Returns 0 if `i` is 0, otherwise it returns 1.
  */
 
-int ok(const int i, const char *file, const int linenum, const char *desc, ...)
+int lst_ok(const int i, const char *file, const int linenum, const char *desc,
+           ...)
 {
 	va_list ap;
 
@@ -742,7 +743,7 @@ int ok(const int i, const char *file, const int linenum, const char *desc, ...)
 		bail_out("%s(): desc is NULL", __func__); /* gncov */
 
 	va_start(ap, desc);
-	ok_va(i, file, linenum, desc, ap);
+	lst_ok_va(i, file, linenum, desc, ap);
 	va_end(ap);
 
 	return !!i;
