@@ -228,14 +228,14 @@
 #define LST_TMPDIR  ".selftest.tmp"
 
 #define sc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        sc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
-                (exp_stderr), (desc), ##__VA_ARGS__);
+        sc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
+                (desc), ##__VA_ARGS__);
 #define tc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        tc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
-                (exp_stderr), (desc), ##__VA_ARGS__);
+        tc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
+                (desc), ##__VA_ARGS__);
 #define rc(cmd, exp_stdout, exp_stderr, desc, ...)  \
-        rc_func(__FILE__, __LINE__, lst_use_valgrind, (cmd), (exp_stdout), \
-                (exp_stderr), (desc), ##__VA_ARGS__);
+        rc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
+                (desc), ##__VA_ARGS__);
 #define verify_output_files(desc, exp_stdout, exp_stderr)  \
         verify_output_files_func(__FILE__, __LINE__, \
                                  desc, exp_stdout, exp_stderr)
@@ -267,8 +267,7 @@ char *lst_getpath(void);
 int lst_init_home(void);
 void lst_streams_init(struct lst_streams *dest);
 void lst_streams_free(struct lst_streams *dest);
-int lst_streams_exec(const bool valgrind, struct lst_streams *dest,
-                     char *cmd[]);
+int lst_streams_exec(struct lst_streams *dest, char *cmd[]);
 int lst_is_root(void);
 char *lst_allocstr_va(const char *format, va_list ap);
 char *lst_allocstr(const char *format, ...);
@@ -282,14 +281,14 @@ int ok(const int i, const char *file, const int linenum,
        const char *desc, ...);
 int diag(const char *format, ...);
 int print_gotexp(const char *got, const char *exp);
-void sc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[], const char *exp_stdout, const char *exp_stderr,
+void sc_func(const char *file, const int linenum, char *cmd[],
+             const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
-void tc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[], const char *exp_stdout, const char *exp_stderr,
+void tc_func(const char *file, const int linenum, char *cmd[],
+             const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
-void rc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[], const char *exp_stdout, const char *exp_stderr,
+void rc_func(const char *file, const int linenum, char *cmd[],
+             const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...);
 int lst_init_output_files(void);
 void lst_restore_output_files(void);

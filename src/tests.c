@@ -41,8 +41,7 @@ static int print_version_info(void)
 	int res;
 
 	lst_streams_init(&ss);
-	res = lst_streams_exec(false, &ss,
-	                       chp{ lst_execname, "--version", NULL });
+	res = lst_streams_exec(&ss, chp{ lst_execname, "--version", NULL });
 	if (res) {
 		failed_ok("lst_streams_exec()"); /* gncov */
 		if (ss.err.buf) /* gncov */
@@ -168,15 +167,17 @@ static void test_valgrind_option(void)
 	diag("Test --valgrind");
 
 	if (o.valgrind) {
+		lst_use_valgrind = false; /* gncov */
 		lst_streams_init(&ss); /* gncov */
-		lst_streams_exec(false, &ss, chp{ "valgrind", /* gncov */
-		                                  "--version", NULL });
+		lst_streams_exec(&ss, chp{ "valgrind", /* gncov */
+		                           "--version", NULL });
 		if (!strstr(ss.out.buf, "valgrind-")) { /* gncov */
 			OK_ERROR("Valgrind is not installed," /* gncov */
 			         " disabling Valgrind checks");
-			set_opt_valgrind(false); /* gncov */
+			lst_use_valgrind = false; /* gncov */
 		} else {
 			OK_SUCCESS(0, "Valgrind is installed"); /* gncov */
+			lst_use_valgrind = true; /* gncov */
 		}
 		lst_streams_free(&ss); /* gncov */
 	}

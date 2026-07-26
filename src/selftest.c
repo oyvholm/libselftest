@@ -362,12 +362,11 @@ static int write_stdin_to_child(const int fd, const char *buf, /* gncov */
 /*
  * lst_streams_exec() - Executes a command and stores stdout, stderr and the 
  * return value into `dest`. `cmd` is an array of arguments, and the last 
- * element must be NULL. If `valgrind` is `true`, the command is executed with 
- * Valgrind. Returns the exit value from the process.
+ * element must be NULL. If `lst_use_valgrind` is `true`, the command is 
+ * executed with Valgrind. Returns the exit value from the process.
  */
 
-int lst_streams_exec(const bool valgrind, struct lst_streams *dest,
-                     char *cmd[])
+int lst_streams_exec(struct lst_streams *dest, char *cmd[])
 {
 	int retval = 1;
 	int infd[2] = { -1, -1 };
@@ -417,7 +416,7 @@ int lst_streams_exec(const bool valgrind, struct lst_streams *dest,
 		close(errfd[0]);
 		close(errfd[1]);
 
-		if (valgrind) { /* gncov */
+		if (lst_use_valgrind) { /* gncov */
 			char **valgrind_cmd
 			= lst_prepare_valgrind_cmd(cmd); /* gncov */
 			execvp(valgrind_cmd[0], valgrind_cmd); /* gncov */
@@ -966,8 +965,7 @@ static int tc_cmp(const int type, const char *got, const char *exp)
  * `exp_retval`. Returns nothing.
  */
 
-static void test_command(const char *file, const int linenum,
-                         const bool valgrind, const char type,
+static void test_command(const char *file, const int linenum, const char type,
                          char *cmd[], const char *exp_stdout,
                          const char *exp_stderr, const int exp_retval,
                          const char *desc, va_list ap)
@@ -995,7 +993,7 @@ static void test_command(const char *file, const int linenum,
 		return; /* gncov */
 	}
 	lst_streams_init(&ss);
-	lst_streams_exec(valgrind, &ss, cmd);
+	lst_streams_exec(&ss, cmd);
 	if (e_stdout) {
 		OK_SUCCESS_L(tc_cmp(type, ss.out.buf, e_stdout), file, linenum,
 		             "%s (stdout)", descbuf);
@@ -1026,8 +1024,7 @@ static void test_command(const char *file, const int linenum,
  * Returns nothing.
  */
 
-void sc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[],
+void sc_func(const char *file, const int linenum, char *cmd[],
              const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
@@ -1041,7 +1038,7 @@ void sc_func(const char *file, const int linenum, const bool valgrind,
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(file, linenum, valgrind, 0, cmd, exp_stdout, exp_stderr,
+	test_command(file, linenum, 0, cmd, exp_stdout, exp_stderr,
 	             exp_retval, desc, ap);
 	va_end(ap);
 }
@@ -1054,8 +1051,8 @@ void sc_func(const char *file, const int linenum, const bool valgrind,
  * Returns nothing.
  */
 
-void tc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[], const char *exp_stdout, const char *exp_stderr,
+void tc_func(const char *file, const int linenum, char *cmd[],
+             const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
 	va_list ap;
@@ -1068,8 +1065,8 @@ void tc_func(const char *file, const int linenum, const bool valgrind,
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(file, linenum, valgrind, 1, cmd, exp_stdout, exp_stderr,
-	             exp_retval, desc, ap);
+	test_command(file, linenum, 1, cmd, exp_stdout, exp_stderr, exp_retval,
+	             desc, ap);
 	va_end(ap);
 }
 
@@ -1081,8 +1078,8 @@ void tc_func(const char *file, const int linenum, const bool valgrind,
  * nothing.
  */
 
-void rc_func(const char *file, const int linenum, const bool valgrind,
-             char *cmd[], const char *exp_stdout, const char *exp_stderr,
+void rc_func(const char *file, const int linenum, char *cmd[],
+             const char *exp_stdout, const char *exp_stderr,
              const int exp_retval, const char *desc, ...)
 {
 	va_list ap;
@@ -1095,7 +1092,7 @@ void rc_func(const char *file, const int linenum, const bool valgrind,
 	assert(*desc);
 
 	va_start(ap, desc);
-	test_command(file, linenum, valgrind, 2, cmd, exp_stdout, exp_stderr,
+	test_command(file, linenum, 2, cmd, exp_stdout, exp_stderr,
 	             exp_retval, desc, ap);
 	va_end(ap);
 }
