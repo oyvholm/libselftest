@@ -660,11 +660,11 @@ int lst_re_check(const char *pattern, const char *s)
 ******************************************************************************/
 
 /*
- * bail_out() - Aborts the test suite with an optional message written to 
+ * lst_bail_out() - Aborts the test suite with an optional message written to 
  * stdout. To abort without a message, use NULL in `msg`. Returns nothing.
  */
 
-void bail_out(const char *msg, ...) /* gncov */
+void lst_bail_out(const char *msg, ...) /* gncov */
 {
 	va_list ap;
 
@@ -700,7 +700,7 @@ int lst_ok_va(const int i, const char *file, const int linenum,
 	assert(*desc);
 
 	if (!desc)
-		bail_out("%s(): desc is NULL", __func__); /* gncov */
+		lst_bail_out("%s(): desc is NULL", __func__); /* gncov */
 
 	printf("%sok %d - %s:%d: ",
 	       (i ? "not " : ""), ++lst_testnum, file, linenum);
@@ -708,13 +708,13 @@ int lst_ok_va(const int i, const char *file, const int linenum,
 	s = lst_allocstr_va(desc, ap_copy);
 	va_end(ap_copy);
 	if (!s)
-		bail_out("lst_allocstr_va() failed: %s", /* gncov */
-		         strerror(errno)); /* gncov */
+		lst_bail_out("lst_allocstr_va() failed: %s", /* gncov */
+		             strerror(errno)); /* gncov */
 	s2 = lst_str_replace(s, "\n", "\\n");
 	if (!s2) {
 		free(s); /* gncov */
-		bail_out("lst_str_replace() failed: %s", /* gncov */
-		         strerror(errno)); /* gncov */
+		lst_bail_out("lst_str_replace() failed: %s", /* gncov */
+		             strerror(errno)); /* gncov */
 	}
 	puts(s2);
 	free(s2);
@@ -740,7 +740,7 @@ int lst_ok(const int i, const char *file, const int linenum, const char *desc,
 	assert(*desc);
 
 	if (!desc)
-		bail_out("%s(): desc is NULL", __func__); /* gncov */
+		lst_bail_out("%s(): desc is NULL", __func__); /* gncov */
 
 	va_start(ap, desc);
 	lst_ok_va(i, file, linenum, desc, ap);

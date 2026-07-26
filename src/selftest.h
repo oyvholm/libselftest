@@ -272,7 +272,7 @@ char *lst_allocstr(const char *format, ...);
 size_t lst_count_substr(const char *s, const char *substr);
 char *lst_str_replace(const char *s, const char *s1, const char *s2);
 int lst_re_check(const char *pattern, const char *s);
-void bail_out(const char *msg, ...);
+void lst_bail_out(const char *msg, ...);
 int lst_ok_va(const int i, const char *file, const int linenum,
               const char *desc, va_list ap);
 int lst_ok(const int i, const char *file, const int linenum,
