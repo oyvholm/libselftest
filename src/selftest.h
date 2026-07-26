@@ -129,57 +129,55 @@
  *           OK_TRUE(errcount < 10, "Error count %d is below 10", errcount);
  */
 
-#define OK_EQUAL_L(a, b, file, linenum, desc, ...)  \
-        ok(!((a) == (b)), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_ERROR_L(file, linenum, msg, ...)  \
-        ok(1, (file), (linenum), (msg), ##__VA_ARGS__)
-#define OK_FAILURE_L(func, file, linenum, desc, ...)  \
-        ok(!(func), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_FALSE_L(val, file, linenum, desc, ...)  \
-        ok(!!(val), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_MEMCMP_L(a, b, len, file, linenum, desc, ...)  \
-        ok(!!memcmp((a), (b), (len)), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NOTEQUAL_L(a, b, file, linenum, desc, ...)  \
-        ok(!((a) != (b)), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NOTNULL_L(p, file, linenum, desc, ...)  \
-        ok(!(p), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_NULL_L(p, file, linenum, desc, ...)  \
-        ok(!!(p), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_STRCMP_L(a, b, file, linenum, desc, ...)  \
-        ok(!!strcmp((a), (b)), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_STRNCMP_L(a, b, len, file, linenum, desc, ...)  \
-        ok(!!strncmp((a), (b), (len)), (file), (linenum), \
-           (desc), ##__VA_ARGS__)
-#define OK_SUCCESS_L(func, file, linenum, desc, ...)  \
-        ok(!!(func), (file), (linenum), (desc), ##__VA_ARGS__)
-#define OK_TRUE_L(val, file, linenum, desc, ...)  \
-        ok(!(val), (file), (linenum), (desc), ##__VA_ARGS__)
+#define OK_EQUAL_L(a, b, file, linenum, ...)  \
+        ok(!((a) == (b)), (file), (linenum), __VA_ARGS__)
+#define OK_ERROR_L(file, linenum, ...)  \
+        ok(1, (file), (linenum), __VA_ARGS__)
+#define OK_FAILURE_L(func, file, linenum, ...)  \
+        ok(!(func), (file), (linenum), __VA_ARGS__)
+#define OK_FALSE_L(val, file, linenum, ...)  \
+        ok(!!(val), (file), (linenum), __VA_ARGS__)
+#define OK_MEMCMP_L(a, b, len, file, linenum, ...)  \
+        ok(!!memcmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
+#define OK_NOTEQUAL_L(a, b, file, linenum, ...)  \
+        ok(!((a) != (b)), (file), (linenum), __VA_ARGS__)
+#define OK_NOTNULL_L(p, file, linenum, ...)  \
+        ok(!(p), (file), (linenum), __VA_ARGS__)
+#define OK_NULL_L(p, file, linenum, ...)  \
+        ok(!!(p), (file), (linenum), __VA_ARGS__)
+#define OK_STRCMP_L(a, b, file, linenum, ...)  \
+        ok(!!strcmp((a), (b)), (file), (linenum), __VA_ARGS__)
+#define OK_STRNCMP_L(a, b, len, file, linenum, ...)  \
+        ok(!!strncmp((a), (b), (len)), (file), (linenum), __VA_ARGS__)
+#define OK_SUCCESS_L(func, file, linenum, ...)  \
+        ok(!!(func), (file), (linenum), __VA_ARGS__)
+#define OK_TRUE_L(val, file, linenum, ...)  \
+        ok(!(val), (file), (linenum), __VA_ARGS__)
 
-#define OK_EQUAL(a, b, desc, ...)  \
-        OK_EQUAL_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_ERROR(msg, ...)  \
-        OK_ERROR_L(__FILE__, __LINE__, (msg), ##__VA_ARGS__)
-#define OK_FAILURE(func, desc, ...)  \
-        OK_FAILURE_L((func), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_FALSE(val, desc, ...)  \
-        OK_FALSE_L((val), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_MEMCMP(a, b, len, desc, ...)  \
-        OK_MEMCMP_L((a), (b), (len), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_NOTEQUAL(a, b, desc, ...)  \
-        OK_NOTEQUAL_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_NOTNULL(p, desc, ...)  \
-        OK_NOTNULL_L((p), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_NULL(p, desc, ...)  \
-        OK_NULL_L((p), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_STRCMP(a, b, desc, ...)  \
-        OK_STRCMP_L((a), (b), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_STRNCMP(a, b, len, desc, ...)  \
-        OK_STRNCMP_L((a), (b), (len), __FILE__, __LINE__, \
-                     (desc), ##__VA_ARGS__)
-#define OK_SUCCESS(func, desc, ...)  \
-        OK_SUCCESS_L((func), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
-#define OK_TRUE(val, desc, ...)  \
-        OK_TRUE_L((val), __FILE__, __LINE__, (desc), ##__VA_ARGS__)
+#define OK_EQUAL(a, b, ...)  \
+        OK_EQUAL_L((a), (b), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_ERROR(...)  \
+        OK_ERROR_L(__FILE__, __LINE__, __VA_ARGS__)
+#define OK_FAILURE(func, ...)  \
+        OK_FAILURE_L((func), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_FALSE(val, ...)  \
+        OK_FALSE_L((val), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_MEMCMP(a, b, len, ...)  \
+        OK_MEMCMP_L((a), (b), (len), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_NOTEQUAL(a, b, ...)  \
+        OK_NOTEQUAL_L((a), (b), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_NOTNULL(p, ...)  \
+        OK_NOTNULL_L((p), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_NULL(p, ...)  \
+        OK_NULL_L((p), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_STRCMP(a, b, ...)  \
+        OK_STRCMP_L((a), (b), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_STRNCMP(a, b, len, ...)  \
+        OK_STRNCMP_L((a), (b), (len), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_SUCCESS(func, ...)  \
+        OK_SUCCESS_L((func), __FILE__, __LINE__, __VA_ARGS__)
+#define OK_TRUE(val, ...)  \
+        OK_TRUE_L((val), __FILE__, __LINE__, __VA_ARGS__)
 
 #define no_null(a)  ((a) ? (a) : "(null)")
 
@@ -227,15 +225,15 @@
 
 #define LST_TMPDIR  ".selftest.tmp"
 
-#define sc(cmd, exp_stdout, exp_stderr, desc, ...)  \
+#define sc(cmd, exp_stdout, exp_stderr, ...)  \
         sc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                (desc), ##__VA_ARGS__);
-#define tc(cmd, exp_stdout, exp_stderr, desc, ...)  \
+                __VA_ARGS__);
+#define tc(cmd, exp_stdout, exp_stderr, ...)  \
         tc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                (desc), ##__VA_ARGS__);
-#define rc(cmd, exp_stdout, exp_stderr, desc, ...)  \
+                __VA_ARGS__);
+#define rc(cmd, exp_stdout, exp_stderr, ...)  \
         rc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                (desc), ##__VA_ARGS__);
+                __VA_ARGS__);
 #define verify_output_files(desc, exp_stdout, exp_stderr)  \
         verify_output_files_func(__FILE__, __LINE__, \
                                  desc, exp_stdout, exp_stderr)
