@@ -246,8 +246,8 @@ int lst_init_home(void)
 	}
 	if (OK_SUCCESS(setenv("HOME", p, 1),
 	               "Set HOME to the temporary directory")) {
-		diag("Cannot set HOME to tempdir: %s", /* gncov */
-		     strerror(errno)); /* gncov */
+		lst_diag("Cannot set HOME to tempdir: %s", /* gncov */
+		         strerror(errno)); /* gncov */
 		goto cleanup; /* gncov */
 	}
 	free(p);
@@ -821,14 +821,14 @@ static char *diag_output(const char *format, ...)
 }
 
 /*
- * diag() - Prints a diagnostic message prefixed with "# " to stdout. `printf` 
- * sequences can be used. All `\n` characters are converted to "\n# ".
+ * lst_diag() - Prints a diagnostic message prefixed with "# " to stdout. 
+ * `printf` sequences can be used. All `\n` characters are converted to "\n# ".
  *
  * A terminating `\n` is automatically added to the string. Returns 0 if 
  * successful, or 1 if `format` is NULL or diag_output_va() failed.
  */
 
-int diag(const char *format, ...)
+int lst_diag(const char *format, ...)
 {
 	va_list ap;
 	char *converted_buffer;
@@ -886,7 +886,7 @@ int print_gotexp(const char *got, const char *exp)
 
 	s = gotexp_output(got, exp);
 	if (s && *s)
-		diag(s); /* gncov */
+		lst_diag(s); /* gncov */
 	free(s);
 
 	return 0;
@@ -1122,14 +1122,14 @@ int lst_init_output_files(void)
 	stdout_fd = open(stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (stdout_fd == -1) {
 		failed_ok("open() for stdout"); /* gncov */
-		diag("stdout_file = \"%s\"", stdout_file); /* gncov */
+		lst_diag("stdout_file = \"%s\"", stdout_file); /* gncov */
 		return 1; /* gncov */
 	}
 
 	stderr_fd = open(stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (stderr_fd == -1) {
 		failed_ok("open() for stderr"); /* gncov */
-		diag("stderr_file = \"%s\"", stderr_file); /* gncov */
+		lst_diag("stderr_file = \"%s\"", stderr_file); /* gncov */
 		close(stdout_fd); /* gncov */
 		return 1; /* gncov */
 	}
@@ -1297,9 +1297,9 @@ int print_selftest_footer(void)
 {
 	printf("1..%d\n", lst_testnum);
 	if (failcount) {
-		diag("Looks like you failed %d test%s of %d.", /* gncov */
-		     failcount, (failcount == 1) ? "" : "s", /* gncov */
-		     lst_testnum);
+		lst_diag("Looks like you failed %d test%s of %d.", /* gncov */
+		         failcount, (failcount == 1) ? "" : "s", /* gncov */
+		         lst_testnum);
 	}
 
 	return lst_testnum;
@@ -1317,7 +1317,7 @@ int print_selftest_footer(void)
 
 static void test_ok_macros(void)
 {
-	diag("Test the OK_*() macros");
+	lst_diag("Test the OK_*() macros");
 
 	OK_EQUAL(3.14, 3.14, "OK_EQUAL(%.2f, %.2f, ...)", 3.14, 3.14);
 	/* OK_ERROR("OK_ERROR(...), can't be tested"); */
@@ -1350,9 +1350,9 @@ static void test_lst_binbuf_cpy(void)
 	const char *txt;
 	char *res;
 
-	diag("Test lst_binbuf_cpy()");
+	lst_diag("Test lst_binbuf_cpy()");
 
-	diag("Store `txt` in `src` and duplicate it to `dest`");
+	lst_diag("Store `txt` in `src` and duplicate it to `dest`");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	txt = "The best test ever.\n";
@@ -1372,7 +1372,7 @@ static void test_lst_binbuf_cpy(void)
 	lst_binbuf_free(&dest);
 	lst_binbuf_free(&src);
 
-	diag("`src.buf` is empty");
+	lst_diag("`src.buf` is empty");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	src.buf = strdup("");
@@ -1392,7 +1392,7 @@ static void test_lst_binbuf_cpy(void)
 	lst_binbuf_free(&dest);
 	lst_binbuf_free(&src);
 
-	diag("`src` has null values");
+	lst_diag("`src` has null values");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	res = lst_binbuf_cpy(&dest, &src);
@@ -1405,7 +1405,7 @@ static void test_lst_binbuf_cpy(void)
 	lst_binbuf_free(&dest);
 	lst_binbuf_free(&src);
 
-	diag("`src.len` is larger than `src.alloc`");
+	lst_diag("`src.len` is larger than `src.alloc`");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	src.len = 2;
@@ -1420,7 +1420,7 @@ static void test_lst_binbuf_cpy(void)
 	lst_binbuf_free(&dest);
 	lst_binbuf_free(&src);
 
-	diag("String in `src.buf` is not null-terminated");
+	lst_diag("String in `src.buf` is not null-terminated");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	txt = "Indeed";
@@ -1444,7 +1444,7 @@ static void test_lst_binbuf_cpy(void)
 	lst_binbuf_free(&dest);
 	lst_binbuf_free(&src);
 
-	diag("Non-ASCIIZ string in src.buf contains nullbyte");
+	lst_diag("Non-ASCIIZ string in src.buf contains nullbyte");
 	lst_binbuf_init(&src);
 	lst_binbuf_init(&dest);
 	txt = "Has nullbyte.";
@@ -1480,7 +1480,7 @@ static void test_lst_allocstr(void)
 	char *p, *p2, *p3;
 	size_t alen;
 
-	diag("Test lst_allocstr()");
+	lst_diag("Test lst_allocstr()");
 	p = malloc(bufsize);
 	if (!p) {
 		failed_ok("malloc()"); /* gncov */
@@ -1543,7 +1543,7 @@ static void test_lst_count_substr(void)
 	char *s;
 	size_t bsize = 10000;
 
-	diag("Test lst_count_substr()");
+	lst_diag("Test lst_count_substr()");
 
 #define lst_chk_cs(s, substr, count, desc)  lst_chk_cs(__FILE__, __LINE__, \
                                                        (s), (substr), \
@@ -1621,7 +1621,7 @@ static void test_lst_str_replace(void)
 	char *s;
 	size_t bsize = 10000;
 
-	diag("Test lst_str_replace()");
+	lst_diag("Test lst_str_replace()");
 
 #define lst_chk_sr(s, s1, s2, exp, desc)  lst_chk_sr(__FILE__, __LINE__, (s), \
                                                      (s1), (s2), (exp), (desc))
@@ -1708,7 +1708,7 @@ static void test_diag_big(void)
 }
 
 /*
- * test_diag() - Tests the diag_output() function. diag() can't be tested 
+ * test_diag() - Tests the diag_output() function. lst_diag() can't be tested 
  * directly because it would pollute the the test output. Returns nothing.
  */
 
@@ -1717,9 +1717,9 @@ static void test_diag(void)
 	char *p, *s;
 	const char *desc;
 
-	diag("Test diag()");
+	lst_diag("Test lst_diag()");
 
-	OK_EQUAL(diag(NULL), 1, "diag(NULL)");
+	OK_EQUAL(lst_diag(NULL), 1, "lst_diag(NULL)");
 	OK_NULL(diag_output(NULL), "diag_output() receives NULL");
 
 	p = diag_output("Text with\nnewline");
@@ -1797,7 +1797,7 @@ static void lst_chk_go(const char *file, const int linenum,
 	OK_STRCMP_L(s, exp_str, file, linenum, "gotexp_output(\"%s\", \"%s\")",
 	            no_null(got), no_null(exp));
 	if (strcmp(s, exp_str))
-		diag("Got:\n%s\nExpected:\n%s", s, exp_str); /* gncov */
+		lst_diag("Got:\n%s\nExpected:\n%s", s, exp_str); /* gncov */
 	free(exp_str);
 	free(s);
 }
@@ -1809,7 +1809,7 @@ static void lst_chk_go(const char *file, const int linenum,
 
 static void test_gotexp_output(void)
 {
-	diag("Test gotexp_output()");
+	lst_diag("Test gotexp_output()");
 
 #define lst_chk_go(got, exp, exp_got, exp_exp)  lst_chk_go(__FILE__, \
                                                            __LINE__, (got), \
@@ -1862,7 +1862,7 @@ static void test_valgrind_lines(void)
 		NULL
 	};
 
-	diag("Test valgrind_lines()");
+	lst_diag("Test valgrind_lines()");
 
 	i = 0;
 	while (has[i]) {
@@ -1892,7 +1892,7 @@ static void test_lst_file_exists(void)
 {
 	FILE *fp;
 
-	diag("Test lst_file_exists()");
+	lst_diag("Test lst_file_exists()");
 
 	OK_FALSE(lst_file_exists(LST_TMPDIR "/nonexisting"),
 	         "%s/nonexisting does not exist", LST_TMPDIR);
@@ -1960,7 +1960,7 @@ static void test_lst_read_from_file(void)
 	char *p = NULL;
 	int orig_errno;
 
-	diag("Test lst_read_from_file()");
+	lst_diag("Test lst_read_from_file()");
 
 	p = lst_read_from_file(LST_TMPDIR "/non-existing");
 	orig_errno = errno;
@@ -1968,8 +1968,8 @@ static void test_lst_read_from_file(void)
 	OK_NULL(p, "lst_read_from_file(): Non-existing file, returns NULL");
 	OK_EQUAL(orig_errno, ENOENT, "lst_read_from_file(): errno is ENOENT");
 	if (orig_errno != ENOENT) {
-		diag("errno was %d (%s)", /* gncov */
-		     orig_errno, strerror(orig_errno));
+		lst_diag("errno was %d (%s)", /* gncov */
+		         orig_errno, strerror(orig_errno));
 	}
 }
 
@@ -1997,7 +1997,7 @@ static void test_lst_re_check(void)
 	char *desc, *err_s = NULL, *exp = NULL;
 	int res;
 
-	diag("Test lst_re_check()");
+	lst_diag("Test lst_re_check()");
 
 #define lst_chk_rc(pattern, s)  lst_chk_rc(__FILE__, __LINE__, (pattern), (s))
 	lst_chk_rc("^$", "");
@@ -2094,13 +2094,14 @@ static void functests_with_tempdir(void)
 {
 	int result;
 
-	diag("Test functions that need a temporary directory for stdout and"
-	     " stderr");
+	lst_diag("Test functions that need a temporary directory for stdout"
+	         " and stderr");
 	result = mkdir(LST_TMPDIR, 0755);
 	OK_SUCCESS(result, "mkdir " LST_TMPDIR " for function tests");
 	if (result) {
-		diag("Cannot create directory \"%s\", skipping" /* gncov */
-		     " tests: %s", LST_TMPDIR, strerror(errno)); /* gncov */
+		lst_diag("Cannot create directory \"%s\", skipping" /* gncov */
+		         " tests: %s",
+		         LST_TMPDIR, strerror(errno)); /* gncov */
 		errno = 0; /* gncov */
 		return; /* gncov */
 	}
@@ -2124,7 +2125,7 @@ static void functests_with_tempdir(void)
 
 void test_selftest_funcs(void)
 {
-	diag("Test selftest routines");
+	lst_diag("Test selftest routines");
 	test_ok_macros();
 	test_lst_binbuf_cpy();
 	test_lst_allocstr();

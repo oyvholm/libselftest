@@ -209,9 +209,9 @@
 	if ((got) != (exp)) \
 		print_gotexp_nostr("%lu", (got), (exp)); \
 } while (0)
-#define DIAG_DEBL  diag("DEBL: %s:%s():%d", __FILE__, __func__, __LINE__)
+#define DIAG_DEBL  lst_diag("DEBL: %s:%s():%d", __FILE__, __func__, __LINE__)
 #define diag_errno()  do { \
-	diag("errno = %d (%s)", errno, strerror(errno)); \
+	lst_diag("errno = %d (%s)", errno, strerror(errno)); \
 	errno = 0; \
 } while (0)
 #define failed_ok(a)  do { \
@@ -277,7 +277,7 @@ int lst_ok_va(const int i, const char *file, const int linenum,
               const char *desc, va_list ap);
 int lst_ok(const int i, const char *file, const int linenum,
            const char *desc, ...);
-int diag(const char *format, ...);
+int lst_diag(const char *format, ...);
 int print_gotexp(const char *got, const char *exp);
 void sc_func(const char *file, const int linenum, char *cmd[],
              const char *exp_stdout, const char *exp_stderr,

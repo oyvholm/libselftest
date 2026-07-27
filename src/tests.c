@@ -45,12 +45,13 @@ static int print_version_info(void)
 	if (res) {
 		failed_ok("lst_streams_exec()"); /* gncov */
 		if (ss.err.buf) /* gncov */
-			diag(ss.err.buf); /* gncov */
+			lst_diag(ss.err.buf); /* gncov */
 		return 1; /* gncov */
 	}
-	diag("========== BEGIN version info ==========\n"
-	     "%s"
-	     "=========== END version info ===========", no_null(ss.out.buf));
+	lst_diag("========== BEGIN version info ==========\n"
+	         "%s"
+	         "=========== END version info ===========",
+	         no_null(ss.out.buf));
 	lst_streams_free(&ss);
 
 	return 0;
@@ -68,7 +69,7 @@ static int print_version_info(void)
 
 static int init_testvars(void)
 {
-	diag("Initialize variables and the environment");
+	lst_diag("Initialize variables and the environment");
 
 	lst_init_home();
 
@@ -98,7 +99,7 @@ static void cleanup_tempdir(const char *file, const int linenum)
 
 static void test_std_strerror(void)
 {
-	diag("Test std_strerror()");
+	lst_diag("Test std_strerror()");
 	OK_STRCMP(std_strerror(EACCES), "Permission denied",
 	          "std_strerror(EACCES) is as expected");
 }
@@ -119,7 +120,7 @@ static void test_myerror(void)
 	const char *desc;
 	char *orig_progname = progname, *exp_stderr;
 
-	diag("Test myerror()");
+	lst_diag("Test myerror()");
 
 	desc = "myerror() with float";
 	if (lst_init_output_files()) {
@@ -164,7 +165,7 @@ static void test_valgrind_option(void)
 	struct Options o = opt_struct();
 	struct lst_streams ss;
 
-	diag("Test --valgrind");
+	lst_diag("Test --valgrind");
 
 	if (o.valgrind) {
 		lst_use_valgrind = false; /* gncov */
@@ -200,9 +201,9 @@ static void test_standard_options(void)
 {
 	char *s;
 
-	diag("Test standard options");
+	lst_diag("Test standard options");
 
-	diag("Test -h/--help");
+	lst_diag("Test -h/--help");
 	sc((chp{ lst_execname, "-h", NULL }),
 	   "  Show this help",
 	   "",
@@ -214,7 +215,7 @@ static void test_standard_options(void)
 	   EXIT_SUCCESS,
 	   "--help");
 
-	diag("Test -v/--verbose");
+	lst_diag("Test -v/--verbose");
 	sc((chp{ lst_execname, "-h", "--verbose", NULL }),
 	   "  Show this help",
 	   "",
@@ -236,7 +237,7 @@ static void test_standard_options(void)
 	   EXIT_SUCCESS,
 	   "--verbose: One -q reduces the verbosity level");
 
-	diag("Test --version");
+	lst_diag("Test --version");
 	s = lst_allocstr("%s %s (%s)\n",
 	                 lst_execname, EXEC_VERSION, EXEC_DATE);
 	if (s) {
@@ -255,7 +256,7 @@ static void test_standard_options(void)
 	   EXIT_SUCCESS,
 	   "--version with -q shows only the version number");
 
-	diag("Test --license");
+	lst_diag("Test --license");
 	rc((chp{ lst_execname, "--license", NULL }),
 	   "GNU Lesser General Public License.*either version 2.1 of the"
 	   " License",
@@ -263,7 +264,7 @@ static void test_standard_options(void)
 	   EXIT_SUCCESS,
 	   "--license: It's version 2.1 of the LGPL");
 
-	diag("Unknown option");
+	lst_diag("Unknown option");
 	sc((chp{ lst_execname, "--gurgle", NULL }),
 	   "",
 	   OPTION_ERROR_STR,
@@ -284,13 +285,14 @@ static void functests_with_tempdir(void)
 {
 	int result;
 
-	diag("Test functions that need a temporary directory for stdout and"
-	     " stderr");
+	lst_diag("Test functions that need a temporary directory for stdout"
+	         " and stderr");
 	result = mkdir(LST_TMPDIR, 0755);
 	OK_SUCCESS(result, "mkdir " LST_TMPDIR " for function tests");
 	if (result) {
-		diag("Cannot create directory \"%s\", skipping" /* gncov */
-		     " tests: %s", LST_TMPDIR, strerror(errno)); /* gncov */
+		lst_diag("Cannot create directory \"%s\", skipping" /* gncov */
+		         " tests: %s",
+		         LST_TMPDIR, strerror(errno)); /* gncov */
 		errno = 0; /* gncov */
 		return; /* gncov */
 	}
@@ -321,8 +323,9 @@ static void tests_with_tempdir(void)
 	OK_SUCCESS(result, "%s(): Create temporary directory %s",
 	                   __func__, LST_TMPDIR);
 	if (result) {
-		diag("Cannot create directory \"%s\", skipping" /* gncov */
-		     " tests: %s", LST_TMPDIR, strerror(errno)); /* gncov */
+		lst_diag("Cannot create directory \"%s\", skipping" /* gncov */
+		         " tests: %s",
+		         LST_TMPDIR, strerror(errno)); /* gncov */
 		errno = 0; /* gncov */
 		return; /* gncov */
 	}
@@ -347,7 +350,7 @@ static void test_functions(const struct Options *o)
 	if (!o->testfunc)
 		return; /* gncov */
 
-	diag("Test various routines");
+	lst_diag("Test various routines");
 
 	/* lst-demo.c */
 	test_std_strerror();
@@ -366,7 +369,7 @@ static void test_executable(const struct Options *o)
 	if (!o->testexec)
 		return; /* gncov */
 
-	diag("Test the executable");
+	lst_diag("Test the executable");
 	test_valgrind_option();
 	print_version_info();
 	test_standard_options();
@@ -390,8 +393,8 @@ int opt_selftest(char *main_execname, const struct Options *o)
 
 #ifndef NO_SELFTEST
 	lst_execname = get_execname(main_execname);
-	diag("Running tests for %s %s (%s)",
-	     lst_execname, EXEC_VERSION, EXEC_DATE);
+	lst_diag("Running tests for %s %s (%s)",
+	         lst_execname, EXEC_VERSION, EXEC_DATE);
 
 	if (init_testvars())
 		return EXIT_FAILURE; /* gncov */
