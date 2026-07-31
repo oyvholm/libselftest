@@ -223,7 +223,9 @@
 	errno = 0; \
 } while (0)
 
+#ifndef LST_TMPDIR
 #define LST_TMPDIR  ".selftest.tmp"
+#endif
 
 #define sc(cmd, exp_stdout, exp_stderr, ...)  \
         sc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \

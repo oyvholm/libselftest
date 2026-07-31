@@ -32,6 +32,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef LST_TMPDIR
+#define LST_TMPDIR  ".selftest.tmp"
+#endif
+
 #ifndef NO_SELFTEST
 #include "selftest.h"
 #endif

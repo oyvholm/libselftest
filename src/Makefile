@@ -16,6 +16,7 @@ CFLAGS += $$($(IS_DEV) && echo -O0 || echo -O2)
 CFLAGS += $$(test -n "$(GCOV)" && echo -n "-fprofile-arcs -ftest-coverage")
 CFLAGS += $$(test -n "$(PROF)" && echo -n "-pg")
 CFLAGS += $(DEVFLAGS_STR)
+CFLAGS += -D 'LST_TMPDIR="$(LST_TMPDIR)"'
 CFLAGS += -Wall
 CFLAGS += -c
 DEPS = version.h $(HFILES) Makefile
@@ -80,6 +81,7 @@ LONGLINES_FILES += $(HFILES)
 LONGLINES_FILES += $(MANSRC)
 LONGLINES_FILES += Gen-version
 LONGLINES_FILES += Makefile
+LST_TMPDIR = .$(EXEC)-test.tmp
 MANPAGE = $(EXEC).1
 MANSRC = $(MANPAGE).man
 MAN_DATE = $$(grep EXEC_DATE version.h | cut -d '"' -f 2 | sed 's/-/\\\\-/g;')
