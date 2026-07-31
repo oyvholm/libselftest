@@ -186,63 +186,25 @@ char *lst_read_from_file(const char *fname)
 }
 
 /*
- * lst_getpath() - Returns pointer to allocated string with full path to 
- * current directory, or NULL if error.
- */
-
-char *lst_getpath(void)
-{
-	char *retval;
-	size_t size = BUFSIZ;
-
-	retval = malloc(size);
-	if (!retval) {
-		failed_ok("malloc()"); /* gncov */
-		return NULL; /* gncov */
-	}
-
-	while (!getcwd(retval, size)) {
-		char *tmp;
-		if (errno != ERANGE) { /* gncov */
-			OK_ERROR("%s(): Cannot get current" /* gncov */
-			         " directory", __func__);
-			free(retval); /* gncov */
-			return NULL; /* gncov */
-		}
-		size *= 2; /* gncov */
-		tmp = realloc(retval, size); /* gncov */
-		if (!tmp) { /* gncov */
-			OK_ERROR("%s(): Could not reallocate" /* gncov */
-			         " %zu bytes", __func__, size);
-			free(retval); /* gncov */
-			return NULL; /* gncov */
-		}
-		retval = tmp; /* gncov */
-	}
-
-	return retval;
-}
-
-/*
  * lst_init_home() - Sets the HOME directory to the location of the temporary 
  * directory defined in LST_TMPDIR. Returns 1 if anything fails, or 0 if OK.
  */
 
 int lst_init_home(void)
 {
-	char *cwd = NULL, *p = NULL;
+	char *p = NULL;
 	int retval = 1;
 
-	cwd = lst_getpath();
-	if (!cwd) {
-		failed_ok("lst_getpath()"); /* gncov */
+	if (OK_SUCCESS(mkdir(LST_TMPDIR, 0777), "mkdir %s", LST_TMPDIR)) {
+		failed_ok("mkdir()"); /* gncov */
 		return 1; /* gncov */
 	}
-
-	p = lst_allocstr("%s/%s", cwd, LST_TMPDIR);
+	OK_NOTNULL(p = realpath(LST_TMPDIR, NULL),
+	           "Convert LST_TMPDIR to absolute path");
+	OK_SUCCESS(rmdir(LST_TMPDIR), "rmdir %s", LST_TMPDIR);
 	if (!p) {
-		failed_ok("lst_allocstr()"); /* gncov */
-		goto cleanup; /* gncov */
+		failed_ok("realpath()"); /* gncov */
+		return 1; /* gncov */
 	}
 	if (OK_SUCCESS(setenv("HOME", p, 1),
 	               "Set HOME to the temporary directory")) {
@@ -250,13 +212,10 @@ int lst_init_home(void)
 		         strerror(errno)); /* gncov */
 		goto cleanup; /* gncov */
 	}
-	free(p);
-	p = NULL;
 	retval = 0;
 
 cleanup:
 	free(p);
-	free(cwd);
 
 	return retval;
 }

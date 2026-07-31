@@ -71,9 +71,7 @@ static int init_testvars(void)
 {
 	lst_diag("Initialize variables and the environment");
 
-	lst_init_home();
-
-	return 0;
+	return lst_init_home() ? 1 : 0;
 }
 
 /*
@@ -396,8 +394,11 @@ int opt_selftest(char *main_execname, const struct Options *o)
 	lst_diag("Running tests for %s %s (%s)",
 	         lst_execname, EXEC_VERSION, EXEC_DATE);
 
-	if (init_testvars())
+	if (init_testvars()) {
+		lst_diag("init_testvars() failed, aborting"); /* gncov */
+		free(lst_execname); /* gncov */
 		return EXIT_FAILURE; /* gncov */
+	}
 	test_selftest_funcs();
 	test_functions(o);
 	test_executable(o);

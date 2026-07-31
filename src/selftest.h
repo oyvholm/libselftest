@@ -263,7 +263,6 @@ char *lst_binbuf_cpy(struct lst_binbuf *dest, const struct lst_binbuf *src);
 bool lst_file_exists(const char *s);
 char *lst_read_from_fp(FILE *fp, struct lst_binbuf *dest);
 char *lst_read_from_file(const char *fname);
-char *lst_getpath(void);
 int lst_init_home(void);
 void lst_streams_init(struct lst_streams *dest);
 void lst_streams_free(struct lst_streams *dest);
