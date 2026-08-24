@@ -6,6 +6,7 @@
 /.devel
 /.lst-demo-test.tmp/
 /.make-tlok.tmp
+/export/
 /gdbopts
 /gmon.out
 /gmon.sum

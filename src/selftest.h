@@ -2,6 +2,8 @@
  * selftest.h
  * File ID: 8ae1ff72-4d86-11f1-a201-83850402c3ce
  *
+ * Library version: @_LST_VERSION_@ (@_LST_DATE_@)
+ *
  * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
  *
  * This library is free software; you can redistribute it and/or modify it 
@@ -36,6 +38,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#define LST_VERSION  "@_LST_VERSION_@"
+#define LST_DATE  "@_LST_DATE_@"
 
 /*
  * Main test macros, meant to be a human-friendly frontend against lst_ok(). 

@@ -108,10 +108,11 @@ suite by compiling with `-DNO_SELFTEST`.
 
 ### Using libselftest in your own program
 
-1. Add `selftest.c` and `selftest.h` to your project.
-2. Call the test runner from your option parsing code when `--selftest`
+1. Execute `make export` in the `src` directory.
+2. Copy `export/selftest.c` and `export/selftest.h` to your project.
+3. Call the test runner from your option parsing code when `--selftest` 
    or `--valgrind` is given.
-3. Write your tests using the `OK_*` macros.
+4. Write your tests using the `OK_*` macros.
 
 See the `lst-demo` program in this repository for a complete working 
 example.
@@ -172,6 +173,16 @@ current `CFLAGS` can be checked with `make cflags`. For example:
 ### make / make all
 
 Generate the `lst-demo` executable.
+
+### make export
+
+Create copies of `selftest.c` and `selftest.h` in an `export` directory 
+and insert the current library version and date (including the Git 
+commit hash) into the files. This makes it easy to identify which 
+version was installed. To specify a custom directory, use the 
+`EXPORT_DIR` macro.
+
+For example: `make export EXPORT_DIR=/path/to/project/src`
 
 ### make clean
 

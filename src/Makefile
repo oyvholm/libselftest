@@ -63,6 +63,9 @@ DEVFLAGS += -fwrapv
 DEVFLAGS += -g3
 DEVFLAGS += -pedantic
 DEVFLAGS_STR = $$($(IS_DEV) && echo $(DEVFLAGS))
+EXPORT_DATE = $$(grep EXEC_DATE version.h | cut -d '"' -f 2)
+EXPORT_DIR = export
+EXPORT_VERSION = $$(grep EXEC_VERSION version.h | cut -d '"' -f 2)
 GNCOV_STR = $$(test -n "$(GNCOV)" && echo "-g")
 HFILES  =
 HFILES += lst-demo.h
@@ -130,6 +133,13 @@ $(EXEC): $(OBJS)
 	$(LD) -o $(EXEC) $(LDFLAGS) $(OBJFILES) $(LIBS)
 	[ -z "$(STRIP)" ] || strip $(EXEC)
 
+$(EXPORT_DIR)/%: FORCE version.h
+	mkdir -p $(EXPORT_DIR)
+	sed -e "s/@_LST_DATE_@/$(EXPORT_DATE)/g;" \
+	    -e "s/@_LST_VERSION_@/$(EXPORT_VERSION)/g;" \
+	<$* >$(EXPORT_DIR)/$*.tmp
+	mv $(EXPORT_DIR)/$*.tmp $(EXPORT_DIR)/$*
+
 $(HTMLFILE): $(MANPAGE)
 	man -Thtml ./$(MANPAGE) >$@.tmp
 	mv $@.tmp $@
@@ -186,6 +196,8 @@ clean:
 	rm -f gmon.out gmon.sum
 	rm -f version.h
 	rm -fr .$(EXEC)-test.tmp
+	rm -fr $(EXPORT_DIR)/selftest.c $(EXPORT_DIR)/selftest.h
+	rmdir $(EXPORT_DIR) 2>/dev/null || true
 
 .PHONY: dupdesc
 dupdesc:
@@ -198,6 +210,14 @@ dupdesc:
 edit: tags
 	$(EDITOR) $$(git ls-files)
 	rm tags
+
+.PHONY: export
+export:
+	$(MAKE) -s $(EXPORT_DIR)/selftest.c
+	$(MAKE) -s $(EXPORT_DIR)/selftest.h
+
+.PHONY: FORCE
+FORCE:
 
 .PHONY: gcov
 gcov:

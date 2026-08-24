@@ -2,6 +2,8 @@
  * selftest.c
  * File ID: 9c088252-4a58-11f1-bac1-83850402c3ce
  *
+ * Library version: @_LST_VERSION_@ (@_LST_DATE_@)
+ *
  * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
  *
  * This library is free software; you can redistribute it and/or modify it 
