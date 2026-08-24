@@ -2,7 +2,7 @@
 # Author: Øyvind A. Holm <sunny@sunbase.org>
 
 IGNFILES  =
-IGNFILES += -e ^COPYING
+IGNFILES += -e ^LICENSE
 LONGLINES_FILES  =
 LONGLINES_FILES += Makefile
 LONGLINES_FILES += README.md
