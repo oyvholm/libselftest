@@ -1,37 +1,134 @@
 <!-- README.md -->
 <!-- File ID: 9bcdfb50-4a58-11f1-8ca0-83850402c3ce -->
 
-# lst-demo
+# libselftest
 
-<!--
+Embedded TAP testing framework for C programs.
+
 ## Overview
 
-TBD: Short description
--->
+**libselftest** is a lightweight C testing framework designed to be 
+compiled directly into the program. It produces TAP (Test Anything 
+Protocol) output and supports both unit-style function tests and full 
+executable tests.
 
-<!--
+### Main design goals
+
+- Zero external test harness required
+- The tests always match the exact binary that was compiled
+- Easy to run on any machine where the program is installed
+- High portability (Linux, the BSDs, Termux, and older systems)
+- Clean compilation under very strict warning flags
+- C99/POSIX.1-2001 compatible
+
+### Why write the test suite in C?
+
+- **Speed**\
+  An execution rate of roughly 4000 tests per second on a normal 
+  consumer laptop is typical. Real-world examples:
+
+  - [geocalc](https://gitlab.com/oyvholm/geocalc) — 1122 tests in 0.287 
+    seconds ≈ 3909 tests/s
+  - [suuid](https://gitlab.com/oyvholm/suuid) — 979 tests in 0.234 
+    seconds ≈ 4183 tests/s
+
+- **Direct access to functions**\
+  External test suites (Perl, Python, shell, etc.) can only drive the 
+  program from the outside and inspect its output and exit status. When 
+  the tests are written in C they can call functions directly, including 
+  with values that are difficult or impossible to produce through normal 
+  program flow. Because there is almost no per-test overhead, functions 
+  can also be exercised millions of times to uncover rare edge cases.
+
+- **No language-version friction**\
+  External test suites introduce an extra dependency on a particular 
+  version of another language and its libraries. Keeping the tests in C 
+  removes that class of compatibility problems.
+
+- **Tests match the binary exactly**\
+  The test code is compiled together with the program, so there is no 
+  risk of the test suite drifting away from the code it is supposed to 
+  verify.
+
+- **Same quality bar**\
+  The tests are subject to the same strict compiler warnings and coding 
+  standards as the rest of the program.
+
+- **No extra runtime dependencies**\
+  Users (or CI) only need the binary itself; they do not need a separate 
+  test harness or interpreter installed.
+
+- **Natural fit for the "ship the tests" model**\
+  Because the tests live inside the program, `./program --selftest` 
+  becomes a reliable self-check that works on any machine where the 
+  binary has been installed.
+
 ### Features
 
-- TBD: Feature 1
-- TBD: Feature 2
--->
+- TAP-compatible output (`ok` / `not ok`, plan, diagnostics)
+- Rich set of assertion macros (`OK_EQUAL`, `OK_STRCMP`, `OK_SUCCESS`, 
+  etc.)
+- Capture of stdout/stderr from the program under test
+- Built-in Valgrind support (`--valgrind`)
+- Temporary directory management
+- Support for both function tests and executable tests
 
-<!--
-### Use cases
--->
+For a complete list of test macros, refer to the description in 
+`selftest.h`.
 
 ### Status
 
-In the startup/design phase, does nothing yet.
+Stable and ready for production use. Compiles with no warnings and 
+tested on the following platforms:
 
-<!--
+- Linux
+- NetBSD
+- FreeBSD
+- OpenBSD
+- Termux on Android
+
 ### Examples
 
-- **`lst-demo`**\
-  TBD: Example 1
-- **`lst-demo`**\
-  TBD: Example 2
--->
+The repository contains `lst-demo`, a small demonstration program that 
+shows how to integrate and use the framework.
+
+The test suite can be implemented in a number of ways, and the 
+`lst-demo` demonstration program uses this implementation:
+
+```sh
+lst-demo --selftest            # Run all tests
+lst-demo --selftest func       # Function tests only
+lst-demo --selftest exec       # Executable tests only
+lst-demo --selftest func,exec  # Both (same as "all")
+lst-demo --valgrind            # Same as --selftest, but under Valgrind
+```
+
+The demonstration program also shows how to compile without the test 
+suite by compiling with `-DNO_SELFTEST`.
+
+### Using libselftest in your own program
+
+1. Add `selftest.c` and `selftest.h` to your project.
+2. Call the test runner from your option parsing code when `--selftest`
+   or `--valgrind` is given.
+3. Write your tests using the `OK_*` macros.
+
+See the `lst-demo` program in this repository for a complete working 
+example.
+
+## Download
+
+The main Git repository is stored at GitLab:
+
+- URL: <https://gitlab.com/oyvholm/libselftest>
+- SSH clone: git@gitlab.com:oyvholm/libselftest.git
+- https clone: <https://gitlab.com/oyvholm/libselftest.git>
+
+The repository is mirrored to GitHub:
+
+- URL: <https://github.com/oyvholm/libselftest>
+- SSH clone: git@github.com:oyvholm/libselftest.git
+- https clone: <https://github.com/oyvholm/libselftest.git>
 
 ## Development
 
@@ -41,7 +138,7 @@ branches which may be rebased now and then. All tests on `master`
 (executed with "make test") MUST succeed. If any test fails, it's 
 considered a bug. Please report any failing tests in the issue tracker.
 
-To ensure compatibility between versions, the program follows the 
+To ensure compatibility between versions, the project follows the 
 Semantic Versioning Specification described at <http://semver.org>. 
 Using the version number `X.Y.Z` as an example:
 
@@ -101,7 +198,7 @@ Add or remove `gcov` markers in the source code in lines that are not
 tested. Lines that are hard to test, for example full disk, full memory, 
 long paths and so on, can be marked with the string `/* gncov */` to 
 avoid marking them. To mark lines even when marked with gncov, set the 
-GNCOV environment variable to a non-empty value. For example:
+`GNCOV` environment variable to a non-empty value. For example:
 
     make gcov-cmt GNCOV=1
 
@@ -163,14 +260,6 @@ footer with the text "Generated from *filename* revision *git-id*
 (*date*)" is added.
 
 Uses `cmark`, available from <https://commonmark.org/>.
-
-## Download
-
-The main Git repository is stored at GitLab:
-
-- URL: <https://gitlab.com/oyvholm/lst-demo>
-- SSH clone: git@gitlab.com:oyvholm/lst-demo.git
-- https clone: <https://gitlab.com/oyvholm/lst-demo.git>
 
 ## License
 

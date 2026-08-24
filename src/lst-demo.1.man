@@ -2,17 +2,18 @@
 .\" File ID: 9c265304-4a58-11f1-9c2e-83850402c3ce
 .TH LST-DEMO 1 "RPL_DATE" "lst-demo\-RPL_VERSION"
 .SH NAME
-lst-demo \- TBD
+lst-demo \- libselftest demo program
 .SH SYNOPSIS
 .B lst-demo
-[\fIOPTIONS\fP] <\fICOMMAND\fP> [\fIARGS\fP]
+[\fIOPTIONS\fP]
 .SH DESCRIPTION
-TBD: lst-demo ...
-.SS Features
-.IP \[bu] 2
-TBD: Feature 1
-.IP \[bu] 2
-TBD: Feature 2
+\fBlst-demo\fP is a small demonstration program that shows how to integrate 
+\fBlibselftest\fP into a C program. It produces TAP (Test Anything Protocol) 
+output and supports both unit-style function tests and full executable tests.
+.PP
+The tests are executed by specifying \fB\-\-selftest\fP or \fB\-\-valgrind\fP. 
+The program can also be compiled without the test suite by defining
+the \fBNO_SELFTEST\fP preprocessor macro.
 .SH OPTIONS
 .TP
 \fB\-h\fP, \fB\-\-help\fP
@@ -35,7 +36,7 @@ Run the built-in test suite with Valgrind memory checking. Accepts the same
 optional argument as \fB\-\-selftest\fP, with the same defaults.
 .TP
 \fB\-v\fP, \fB\-\-verbose\fP
-Increase level of verbosity. Can be repeated.
+Increase verbosity. Can be repeated.
 .TP
 \fB\-\-version\fP
 Print version information.
@@ -48,11 +49,20 @@ No error.
 Some kind of error occurred.
 .SH EXAMPLES
 .TP
-\fClst-demo\fP
-TBD: Example 1
+\fClst-demo \-\-selftest\fP
+Execute the tests.
 .TP
-\fClst-demo\fP
-TBD: Example 2
+\fClst-demo \-\-selftest func\fP
+Run only function tests (no tests of the binary itself).
+.TP
+\fClst-demo \-\-selftest exec\fP
+Run only tests that execute the binary (no function tests).
+.TP
+\fClst-demo \-\-valgrind\fP
+Execute the tests with Valgrind checking.
+.TP
+\fCmake clean all NO_SELFTEST=1\fP
+Compile the program without including the tests.
 .SH AUTHOR
 Written by \[/O]yvind A.\& Holm <sunny@sunbase.org>
 .SH COPYRIGHT
@@ -65,8 +75,7 @@ later version.
 .PP
 This library is distributed in the hope that it will be useful, but WITHOUT ANY 
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-PARTICULAR PURPOSE. See the GNU Lesser General Public License for more 
-details.
+PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 .PP
 You should have received a copy of the GNU Lesser General Public License along 
 with this library; if not, see <https://www.gnu.org/licenses/>.
