@@ -607,7 +607,6 @@ int lst_re_check(const char *pattern, const char *s)
 		regerror(result, &regexp, errbuf, sizeof(errbuf));
 		fprintf(stderr, "%s(): regcomp() failed: %s",
 		                __func__, errbuf);
-		regfree(&regexp);
 		return -1;
 	}
 	result = regexec(&regexp, s, 0, NULL, 0);
