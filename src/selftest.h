@@ -234,13 +234,13 @@
 
 #define sc(cmd, exp_stdout, exp_stderr, ...)  \
         sc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                __VA_ARGS__);
+                __VA_ARGS__)
 #define tc(cmd, exp_stdout, exp_stderr, ...)  \
         tc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                __VA_ARGS__);
+                __VA_ARGS__)
 #define rc(cmd, exp_stdout, exp_stderr, ...)  \
         rc_func(__FILE__, __LINE__, (cmd), (exp_stdout), (exp_stderr), \
-                __VA_ARGS__);
+                __VA_ARGS__)
 #define verify_output_files(desc, exp_stdout, exp_stderr)  \
         verify_output_files_func(__FILE__, __LINE__, \
                                  desc, exp_stdout, exp_stderr)
