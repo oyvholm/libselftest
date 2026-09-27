@@ -837,19 +837,22 @@ static char *gotexp_output(const char *got, const char *exp)
 /*
  * print_gotexp() - Prints the value of the actual and exepected data if the 
  * strings `got` and `exp` are different. Used when a test fails. Returns 1 if 
- * `got` or `exp` are different, otherwise 0.
+ * gotexp_output() or lst_diag() failed, otherwise 0.
  */
 
 int print_gotexp(const char *got, const char *exp)
 {
 	char *s;
+	int r = 0;
 
 	s = gotexp_output(got, exp);
-	if (s && *s)
-		lst_diag(s); /* gncov */
+	if (!s)
+		return 1; /* gncov */
+	if (*s)
+		r += lst_diag(s); /* gncov */
 	free(s);
 
-	return 0;
+	return !!r;
 }
 
 /*
