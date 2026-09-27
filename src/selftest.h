@@ -199,20 +199,24 @@
 	free(pgn_g); \
 } while (0)
 #define print_gotexp_double(got, exp)  do { \
-	if ((got) != (exp)) \
-		print_gotexp_nostr("%.8f", (got), (exp)); \
+	const double pgd_got = (got), pgd_exp = (exp); \
+	if (pgd_got != pgd_exp) \
+		print_gotexp_nostr("%.8f", pgd_got, pgd_exp); \
 } while (0)
 #define print_gotexp_int(got, exp)  do { \
-	if ((got) != (exp)) \
-		print_gotexp_nostr("%d", (got), (exp)); \
+	const int pgi_got = (got), pgi_exp = (exp); \
+	if (pgi_got != pgi_exp) \
+		print_gotexp_nostr("%d", pgi_got, pgi_exp); \
 } while (0)
 #define print_gotexp_size_t(got, exp)  do { \
-	if ((got) != (exp)) \
-		print_gotexp_nostr("%zu", (got), (exp)); \
+	const size_t pgst_got = (got), pgst_exp = (exp); \
+	if (pgst_got != pgst_exp) \
+		print_gotexp_nostr("%zu", pgst_got, pgst_exp); \
 } while (0)
 #define print_gotexp_ulong(got, exp)  do { \
-	if ((got) != (exp)) \
-		print_gotexp_nostr("%lu", (got), (exp)); \
+	const unsigned long pgu_got = (got), pgu_exp = (exp); \
+	if (pgu_got != pgu_exp) \
+		print_gotexp_nostr("%lu", pgu_got, pgu_exp); \
 } while (0)
 #define DIAG_DEBL  lst_diag("DEBL: %s:%s():%d", __FILE__, __func__, __LINE__)
 #define diag_errno()  do { \
