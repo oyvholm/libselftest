@@ -18,8 +18,8 @@
  * along with this library; if not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LST_DEMO_H
-#define _LST_DEMO_H
+#ifndef LST_DEMO_H
+#define LST_DEMO_H
 
 #include "version.h"
 
@@ -88,6 +88,6 @@ void init_opt(struct Options *dest);
 /* tests.c */
 int opt_selftest(char *execname, const struct Options *o);
 
-#endif /* ifndef _LST_DEMO_H */
+#endif /* ifndef LST_DEMO_H */
 
 /* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */

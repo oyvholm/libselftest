@@ -20,8 +20,8 @@
  * along with this library; if not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _SELFTEST_H
-#define _SELFTEST_H
+#ifndef SELFTEST_H
+#define SELFTEST_H
 
 #include <assert.h>
 #include <ctype.h>
@@ -309,6 +309,6 @@ int print_selftest_footer(void);
 char *get_execname(const char *ename);
 void test_selftest_funcs(void);
 
-#endif /* ifndef _SELFTEST_H */
+#endif /* ifndef SELFTEST_H */
 
 /* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */
