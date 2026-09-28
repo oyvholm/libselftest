@@ -1147,10 +1147,14 @@ int lst_init_output_files(void)
 	if (dup2(stderr_fd, 2) == -1) {
 		failed_ok("dup2() for stderr"); /* gncov */
 		close(stderr_fd); /* gncov */
+		/*
+		 * Restore stdout before closing the saved descriptor, 
+		 * otherwise dup2() uses a closed fd and stdout stays 
+		 * redirected to the temporary file.
+		 */
+		dup2(orig_stdout_fd, 1); /* gncov */
 		close(orig_stdout_fd); /* gncov */
 		close(orig_stderr_fd); /* gncov */
-		/* Restore stdout partially if possible */
-		dup2(orig_stdout_fd, 1); /* gncov */
 		orig_stdout_fd = -1; /* gncov */
 		orig_stderr_fd = -1; /* gncov */
 		return 1; /* gncov */
