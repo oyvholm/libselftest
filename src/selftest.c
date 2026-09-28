@@ -856,9 +856,32 @@ int print_gotexp(const char *got, const char *exp)
 }
 
 /*
- * valgrind_lines() - Searches for Valgrind markers ("\n==DIGITS==") in `s`, 
- * used by test_command(). If a marker is found or `s` is NULL, it returns 1. 
- * Otherwise, it returns 0.
+ * valgrind_marker_at() - Returns 1 if `p` starts with a Valgrind marker 
+ * ("==DIGITS=="), otherwise 0.
+ */
+
+static int valgrind_marker_at(const char *p)
+{
+	assert(p);
+
+	if (strncmp(p, "==", 2))
+		return 0;
+	p += 2;
+	if (!*p || !isdigit((unsigned char)*p))
+		return 0;
+	while (isdigit((unsigned char)*p))
+		p++;
+	if (!*p)
+		return 0;
+
+	return !strncmp(p, "==", 2);
+}
+
+/*
+ * valgrind_lines() - Searches for Valgrind markers ("==DIGITS==") in `s`, used 
+ * by test_command(). Markers are recognised at the start of the buffer or 
+ * after a newline, matching real Valgrind `-q` output. If a marker is found or 
+ * `s` is NULL, it returns 1. Otherwise, it returns 0.
  */
 
 static int valgrind_lines(const char *s)
@@ -868,22 +891,14 @@ static int valgrind_lines(const char *s)
 	if (!s)
 		return OK_ERROR("%s(): s == NULL", __func__); /* gncov */
 
-	while (*p) {
-		p = strstr(p, "\n==");
-		if (!p)
-			return 0;
-		p += 3;
-		if (!*p)
-			return 0;
-		if (!isdigit((unsigned char)*p))
-			continue;
-		while (isdigit((unsigned char)*p))
-			p++;
-		if (!*p)
-			return 0;
-		if (!strncmp(p, "==", 2))
+	if (valgrind_marker_at(p))
+		return 1;
+
+	while ((p = strstr(p, "\n==")) != NULL) {
+		p++; /* Point at the first '=' of "==..." */
+		if (valgrind_marker_at(p))
 			return 1;
-		p++;
+		p++; /* Advance so the next search can progress */
 	}
 
 	return 0;
@@ -1801,6 +1816,8 @@ static void test_valgrind_lines(void)
 	int i;
 	const char
 	*has[] = {
+		"==12345== Invalid read\n",
+		"==123==",
 		"\n==123==",
 		"\n==154363456657465745674567456523==maybe",
 		"\n==\n==123==maybe",
@@ -1810,7 +1827,8 @@ static void test_valgrind_lines(void)
 	},
 	*hasnot[] = {
 		"",
-		"==123==",
+		"=123==",
+		"==jj==",
 		"\n=",
 		"\n=123== \n234==",
 		"\n=123==",
@@ -1821,6 +1839,7 @@ static void test_valgrind_lines(void)
 		"\n==123=",
 		"\n==jj==",
 		"abc",
+		"abc==123==def",
 		"abc\n==",
 		NULL
 	};
