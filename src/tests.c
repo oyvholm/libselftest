@@ -71,7 +71,7 @@ static int init_testvars(void)
 {
 	lst_diag("Initialize variables and the environment");
 
-	return lst_init_home() ? 1 : 0;
+	return !!lst_init_home();
 }
 
 /*

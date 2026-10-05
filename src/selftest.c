@@ -4,6 +4,11 @@
  *
  * Library version: @_LST_VERSION_@ (@_LST_DATE_@)
  *
+ * Available from:
+ *
+ *   https://gitlab.com/oyvholm/libselftest
+ *   https://github.com/oyvholm/libselftest
+ *
  * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
  *
  * This library is free software; you can redistribute it and/or modify it 
@@ -835,7 +840,7 @@ static char *gotexp_output(const char *got, const char *exp)
 }
 
 /*
- * print_gotexp() - Prints the value of the actual and exepected data if the 
+ * print_gotexp() - Prints the value of the actual and expected data if the 
  * strings `got` and `exp` are different. Used when a test fails. Returns 1 if 
  * gotexp_output() or lst_diag() failed, otherwise 0.
  */
@@ -1527,9 +1532,9 @@ static void test_lst_count_substr(void)
 
 	lst_diag("Test lst_count_substr()");
 
-#define lst_chk_cs(s, substr, count, desc)  lst_chk_cs(__FILE__, __LINE__, \
-                                                       (s), (substr), \
-                                                       (count), (desc))
+#define lst_chk_cs(s, substr, count, desc)  \
+        lst_chk_cs(__FILE__, __LINE__, (s), (substr), (count), (desc))
+
 	lst_chk_cs("", "", 0, "s and substr are empty");
 	lst_chk_cs("", "a", 0, "s is empty");
 	lst_chk_cs("aaa", "", 0, "substr is empty");
@@ -1605,8 +1610,9 @@ static void test_lst_str_replace(void)
 
 	lst_diag("Test lst_str_replace()");
 
-#define lst_chk_sr(s, s1, s2, exp, desc)  lst_chk_sr(__FILE__, __LINE__, (s), \
-                                                     (s1), (s2), (exp), (desc))
+#define lst_chk_sr(s, s1, s2, exp, desc)  \
+        lst_chk_sr(__FILE__, __LINE__, (s), (s1), (s2), (exp), (desc))
+
 	lst_chk_sr("", "", "", "", "s, s1, and s2 are empty");
 	lst_chk_sr("abc", "", "b", "abc", "s1 is empty");
 	lst_chk_sr("", "a", "b", "", "s is empty");
@@ -1793,10 +1799,9 @@ static void test_gotexp_output(void)
 {
 	lst_diag("Test gotexp_output()");
 
-#define lst_chk_go(got, exp, exp_got, exp_exp)  lst_chk_go(__FILE__, \
-                                                           __LINE__, (got), \
-                                                           (exp), (exp_got), \
-                                                           (exp_exp))
+#define lst_chk_go(got, exp, exp_got, exp_exp)  \
+        lst_chk_go(__FILE__, __LINE__, (got), (exp), (exp_got), (exp_exp))
+
 	lst_chk_go("", "", "", "");
 	lst_chk_go("a", "a", "", "");
 	lst_chk_go("a", "b", "a", "b");

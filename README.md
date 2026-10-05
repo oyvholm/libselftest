@@ -38,7 +38,7 @@ executable tests.
   the tests are written in C they can call functions directly, including 
   with values that are difficult or impossible to produce through normal 
   program flow. Because there is almost no per-test overhead, functions 
-  can also be exercised millions of times to uncover rare edge cases.
+  can be exercised millions of times to uncover rare edge cases.
 
 - **No language-version friction**\
   External test suites introduce an extra dependency on a particular 
@@ -68,7 +68,7 @@ executable tests.
 - TAP-compatible output (`ok` / `not ok`, plan, diagnostics)
 - Rich set of assertion macros (`OK_EQUAL`, `OK_STRCMP`, `OK_SUCCESS`, 
   etc.)
-- Capture of stdout/stderr from the program under test
+- Capture of stdout/stderr/status from the program under test
 - Built-in Valgrind support (`--valgrind`)
 - Temporary directory management
 - Support for both function tests and executable tests
@@ -140,7 +140,7 @@ branches which may be rebased now and then. All tests on `master`
 considered a bug. Please report any failing tests in the issue tracker.
 
 To ensure compatibility between versions, the project follows the 
-Semantic Versioning Specification described at <http://semver.org>. 
+Semantic Versioning Specification described at <https://semver.org>. 
 Using the version number `X.Y.Z` as an example:
 
 - `X` is the *major version*.
@@ -293,16 +293,17 @@ along with this library; if not, see <https://www.gnu.org/licenses/>.
 
 ## About this document
 
-This file is written in [Commonmark](https://commonmark.org) and all 
+This file is written in [CommonMark](https://commonmark.org) and all 
 `make` commands use `cmark`(1) to generate HTML and reformat text.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", 
 "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this 
-document are to be interpreted as described in RFC 2119.
+document are to be interpreted as described in [RFC 
+2119](https://www.rfc-editor.org/rfc/rfc2119.txt).
 
 -----
 
 <!--
-vim: set ts=2 sw=2 sts=2 tw=72 et fo=tcqw fenc=utf8 :
+vim: set ts=2 sw=2 sts=2 tw=72 et fo=tcqwn fenc=utf8 :
 vim: set com=b\:#,fb\:-,fb\:*,n\:> ft=markdown :
 -->

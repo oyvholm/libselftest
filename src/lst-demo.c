@@ -248,7 +248,7 @@ static int usage(const struct Options *o, const int retval)
 	       " defaults.\n");
 #endif
 	printf("  -v, --verbose\n"
-	       "    Increase level of verbosity. Can be repeated.\n");
+	       "    Increase verbosity. Can be repeated.\n");
 	printf("  --version\n"
 	       "    Print version information.\n");
 	printf("\n");

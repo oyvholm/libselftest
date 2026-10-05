@@ -4,6 +4,11 @@
  *
  * Library version: @_LST_VERSION_@ (@_LST_DATE_@)
  *
+ * Available from:
+ *
+ *   https://gitlab.com/oyvholm/libselftest
+ *   https://github.com/oyvholm/libselftest
+ *
  * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
  *
  * This library is free software; you can redistribute it and/or modify it 

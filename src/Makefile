@@ -195,8 +195,8 @@ clean:
 	rm -f *.s
 	rm -f gmon.out gmon.sum
 	rm -f version.h
-	rm -fr .$(EXEC)-test.tmp
 	rm -fr $(EXPORT_DIR)/selftest.c $(EXPORT_DIR)/selftest.h
+	rm -fr .$(EXEC)-test.tmp
 	rmdir $(EXPORT_DIR) 2>/dev/null || true
 
 .PHONY: dupdesc
