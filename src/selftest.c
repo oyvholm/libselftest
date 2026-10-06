@@ -920,8 +920,8 @@ static int valgrind_lines(const char *s)
  * `got` is the actual output from the program, and `exp` is the expected 
  * output, substring, or regexp pattern.
  *
- * If `type` is 0 (substring search) and `exp` is empty, the output in `got` 
- * must also be empty for the test to succeed.
+ * If `exp` is empty, the output in `got` must also be empty for the test to 
+ * succeed, for every comparison type.
  *
  * Returns 0 if the string was found, otherwise 1.
  */
@@ -933,12 +933,10 @@ static int tc_cmp(const int type, const char *got, const char *exp)
 	if (!got || !exp)
 		return 1; /* gncov */
 
-	if (type || !*exp) {
-		if (type == 1)
-			return !!strcmp(got, exp);
-		else if (type == 2)
-			return !!lst_re_check(exp, got);
-	}
+	if (type == 1 || !*exp)
+		return !!strcmp(got, exp);
+	if (type == 2)
+		return !!lst_re_check(exp, got);
 
 	return !strstr(got, exp);
 }
