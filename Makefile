@@ -31,7 +31,7 @@ all:
 
 %.pdf: FORCE
 	$(MAKE) $*.html
-	wkhtmltopdf $*.html $@.tmp
+	weasyprint $*.html $@.tmp
 	mv $@.tmp $@
 
 tags: src/*.[ch]
