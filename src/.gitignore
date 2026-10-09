@@ -10,6 +10,12 @@
 /gdbopts
 /gmon.out
 /gmon.sum
+/libselftest.3
+/libselftest.3.tmp
+/libselftest.html
+/libselftest.html.tmp
+/libselftest.pdf
+/libselftest.pdf.tmp
 /lst-demo
 /lst-demo.1
 /lst-demo.1.tmp

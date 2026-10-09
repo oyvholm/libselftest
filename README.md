@@ -73,8 +73,8 @@ executable tests.
 - Temporary directory management
 - Support for both function tests and executable tests
 
-For a complete list of test macros, refer to the description in 
-`selftest.h`.
+For a complete list of test macros, refer to the overview in 
+`libselftest`(3) and the descriptions in `selftest.h`.
 
 ### Status
 
@@ -115,7 +115,9 @@ suite by compiling with `-DNO_SELFTEST`.
 4. Write your tests using the `OK_*` macros.
 
 See the `lst-demo` program in this repository for a complete working 
-example.
+example, and the `libselftest`(3) man page for an overview of all 
+macros and functions. After `make`, it can be read with 
+`man ./libselftest.3` in the `src` directory.
 
 ## Download
 
@@ -172,7 +174,8 @@ current `CFLAGS` can be checked with `make cflags`. For example:
 
 ### make / make all
 
-Generate the `lst-demo` executable.
+Generate the `lst-demo` executable and the `lst-demo`(1) and 
+`libselftest`(3) man pages.
 
 ### make export
 
@@ -187,6 +190,13 @@ For example: `make export EXPORT_DIR=/path/to/project/src`
 ### make clean
 
 Remove all generated files except `tags`.
+
+### make docsync
+
+Check that all public macros, functions, structs and extern variables 
+in `selftest.h` are mentioned in bold in `src/libselftest.3.man`, so the 
+man page doesn't fall behind when names are added or renamed. It is 
+also executed by `make testsrc`.
 
 ### make edit
 
@@ -233,7 +243,8 @@ another window.
 
 ### make install
 
-`make install` installs `lst-demo` to the location defined by `PREFIX` 
+`make install` installs `lst-demo`, the `lst-demo`(1) man page, and the 
+`libselftest`(3) man page (`man3`) to the location defined by `PREFIX` 
 in `src/Makefile`. Default location is `/usr/local`, but it can be 
 installed somewhere else by specifying `PREFIX`. For example:
 
@@ -260,8 +271,9 @@ Should also not fail on master.
 
 `make html` creates HTML versions of all documentation in the current 
 directory tree, and `make pdf` creates PDF versions. When executed in 
-the `src/` directory, an HTML or PDF version of the man page is created, 
-stored as `lst-demo.html` or `lst-demo.pdf`.
+the `src/` directory, HTML or PDF versions of the man pages are created, 
+stored as `lst-demo.html` or `lst-demo.pdf`, and `libselftest.html` or 
+`libselftest.pdf`.
 
 All `*.md` files can be converted to HTML or PDF by replacing the `.md` 
 extension with `.html` or `.pdf`. For example, use `make README.html` to 

@@ -74,13 +74,19 @@ HTMLFILE = $(EXEC).html
 INSTALL_TARGETS  =
 INSTALL_TARGETS += $(PREFIX)/bin/$(EXEC)
 INSTALL_TARGETS += $(PREFIX)/share/man/man1/$(MANPAGE)
+INSTALL_TARGETS += $(PREFIX)/share/man/man3/$(LIBMANPAGE)
 LDFLAGS  =
 LDFLAGS += $$(test -n "$(PROF)" && echo -n "-pg")
+LIBHTMLFILE = libselftest.html
+LIBMANPAGE = libselftest.3
+LIBMANSRC = libselftest.3.man
+LIBPDFFILE = libselftest.pdf
 LIBS  =
 LIBS += $$(test -n "$(GCOV)" && echo "-lgcov --coverage")
 LONGLINES_FILES  =
 LONGLINES_FILES += $(CFILES)
 LONGLINES_FILES += $(HFILES)
+LONGLINES_FILES += $(LIBMANSRC)
 LONGLINES_FILES += $(MANSRC)
 LONGLINES_FILES += Gen-version
 LONGLINES_FILES += Makefile
@@ -127,7 +133,7 @@ TESTABLE_LINES = $$(grep -E '^ +\#\#\#\#\#:' *.c.gcov \
                     | grep -Fiv '/* gncov */' | wc -l)
 
 .PHONY: all
-all: $(EXEC) $(MANPAGE)
+all: $(EXEC) $(MANPAGE) $(LIBMANPAGE)
 
 # Build the executable file. If STRIP is non-empty, the debugging symbols are 
 # stripped from the binary to reduce the size.
@@ -150,6 +156,25 @@ $(HTMLFILE): $(MANPAGE)
 	man -Thtml ./$(MANPAGE) >$@.tmp
 	mv $@.tmp $@
 
+# Create an HTML version of the library man page and store it in the file 
+# defined by LIBHTMLFILE. Used by `make html`.
+$(LIBHTMLFILE): $(LIBMANPAGE)
+	man -Thtml ./$(LIBMANPAGE) >$@.tmp
+	mv $@.tmp $@
+
+# Create the actual library man page by copying the troff source from LIBMANSRC 
+# to LIBMANPAGE and translating the strings "RPL_DATE" and "RPL_VERSION" into 
+# the date and version of the current commit.
+$(LIBMANPAGE): $(LIBMANSRC) version.h
+	sed "s/RPL_DATE/$(MAN_DATE)/g; s/RPL_VERSION/$(MAN_VERSION)/g;" \
+	<$(LIBMANSRC) >$@.tmp
+	mv $@.tmp $@
+
+# Create a PDF version of the library man page. Used by `make pdf`.
+$(LIBPDFFILE): $(LIBMANPAGE)
+	man -Tpdf ./$(LIBMANPAGE) >$@.tmp
+	mv $@.tmp $@
+
 # Create the man page for the program.
 $(MANPAGE): $(MANSRC) version.h
 	sed "s/RPL_DATE/$(MAN_DATE)/g; s/RPL_VERSION/$(MAN_VERSION)/g;" \
@@ -170,6 +195,11 @@ $(PREFIX)/bin/$(EXEC): $(EXEC)
 $(PREFIX)/share/man/man1/$(MANPAGE): $(MANPAGE)
 	mkdir -p $(PREFIX)/share/man/man1
 	install $(MANPAGE) $(PREFIX)/share/man/man1/$(MANPAGE)
+
+# Install the library man page in `$(PREFIX)/share/man/man3`.
+$(PREFIX)/share/man/man3/$(LIBMANPAGE): $(LIBMANPAGE)
+	mkdir -p $(PREFIX)/share/man/man3
+	install $(LIBMANPAGE) $(PREFIX)/share/man/man3/$(LIBMANPAGE)
 
 # Generate version.h, which defines the version and date strings and any 
 # compile-time macros enabled on the command line, like NDEBUG.
@@ -205,6 +235,9 @@ clean:
 	rm -f $(EXEC) $(OBJS)
 	rm -f $(EXEC).core
 	rm -f $(HTMLFILE) $(HTMLFILE).tmp
+	rm -f $(LIBHTMLFILE) $(LIBHTMLFILE).tmp
+	rm -f $(LIBMANPAGE) $(LIBMANPAGE).tmp
+	rm -f $(LIBPDFFILE) $(LIBPDFFILE).tmp
 	rm -f $(MANPAGE) $(MANPAGE).tmp
 	rm -f $(PDFFILE) $(PDFFILE).tmp
 	rm -f *.gcda *.gcno *.gcov
@@ -214,6 +247,31 @@ clean:
 	rm -fr $(EXPORT_DIR)/selftest.c $(EXPORT_DIR)/selftest.h
 	rm -fr .$(EXEC)-test.tmp
 	rmdir $(EXPORT_DIR) 2>/dev/null || true
+
+# docsync: Check that all public macros, functions, structs and extern 
+# variables in selftest.h are mentioned in bold (\fBname\fP) in $(LIBMANSRC). 
+# Internal names that shouldn't be documented are excluded in the case 
+# statement.
+.PHONY: docsync
+docsync:
+	@res=0; \
+	for n in $$(sed -n \
+	    -e 's/^#define[[:space:]]\{1,\}\([A-Za-z_][A-Za-z0-9_]*\).*/\1/p' \
+	    -e 's/^struct \([A-Za-z_][A-Za-z0-9_]*\) {.*/\1/p' \
+	    -e 's/^extern .*[ *]\([A-Za-z_][A-Za-z0-9_]*\);.*/\1/p' \
+	    -e '/^[A-Za-z]/s/^[^(]*[ *]\([A-Za-z_][A-Za-z0-9_]*\)(.*/\1/p' \
+	    selftest.h); do \
+		case "$$n" in \
+		SELFTEST_H) continue ;; \
+		*_func) continue ;; \
+		test_selftest_funcs) continue ;; \
+		esac; \
+		grep -Eq "\\\\fB(struct )?$$n\\\\fP" $(LIBMANSRC) \
+		&& continue; \
+		echo "$(LIBMANSRC): $$n is not documented" >&2; \
+		res=1; \
+	done; \
+	exit $$res
 
 # dupdesc: Search for and print duplicated test descriptions. All test 
 # descriptions should be unique to make it easier to track down failing tests 
@@ -292,11 +350,11 @@ gncov-refresh:
 gncov-remove:
 	perl -pi -e 's, /\* gncov \*/,,gi;' $(CFILES)
 
-# html: Create an HTML version of the man page.
+# html: Create HTML versions of the man pages.
 .PHONY: html
-html: $(HTMLFILE)
+html: $(HTMLFILE) $(LIBHTMLFILE)
 
-# install: Install `lst-demo` and the man page to the location defined by 
+# install: Install `lst-demo` and the man pages to the location defined by 
 # PREFIX. Default location is `/usr/local`, but it can be installed to another 
 # directory tree by specifying PREFIX.
 .PHONY: install
@@ -317,9 +375,9 @@ longlines:
 		fi; \
 	done | grep . && exit 1 || true
 
-# pdf: Create a PDF version of the man page.
+# pdf: Create PDF versions of the man pages.
 .PHONY: pdf
-pdf: $(PDFFILE)
+pdf: $(PDFFILE) $(LIBPDFFILE)
 
 # test: Run the test suite. The TESTS macro can have the following values:
 # - `all` (default, runs both function and executable tests)
@@ -359,6 +417,8 @@ testsrc:
 	@grep -n '\<failed(' --color=always selftest.c && exit 1 || true
 	@echo "Search for failed() in tests.c"
 	@grep -n '\<failed(' --color=always tests.c && exit 1 || true
+	@echo "Verify that $(LIBMANSRC) contains everything"
+	@$(MAKE) -s docsync
 
 # tlok: Generate a short status report on stdout using the format `X:Y` where X 
 # is the number of untested lines (`gncov` lines are not counted) and Y is the 

@@ -1,0 +1,449 @@
+.\" libselftest.3.man
+.\" File ID: b0b6d4a0-8e8d-11f1-b8dd-83850402c3ce
+.TH LIBSELFTEST 3 "RPL_DATE" "libselftest\-RPL_VERSION"
+.nh
+.SH NAME
+libselftest \- embedded TAP testing framework for C programs
+.SH SYNOPSIS
+.EX
+#include "selftest.h"
+.EE
+.PP
+libselftest is not installed as a shared or static library. Copy 
+\fBselftest.c\fP and \fBselftest.h\fP into the project (\fBmake export\fP in 
+the \fBsrc/\fP directory of the libselftest repository creates copies with the 
+library version and date inserted), and compile \fBselftest.c\fP together with 
+the program:
+.PP
+.RS
+.EX
+cc \-o prog prog.c selftest.c
+.EE
+.RE
+.SH DESCRIPTION
+libselftest is a small testing framework intended to be compiled directly into 
+a C program. The tests are part of the binary, so they always correspond 
+exactly to the program that is running, and they can call internal functions 
+directly. A program typically runs its test suite when it is started with an 
+option like \fB\-\-selftest\fP; see \fBlst\-demo\fP(1) for a complete example.
+.PP
+The test results are written to standard output in the TAP (Test Anything 
+Protocol) format. Every test prints a line of the form
+.PP
+.RS
+.EX
+ok \fIN\fP \- \fIfile\fP:\fIline\fP: \fIdescription\fP
+.EE
+.RE
+.PP
+or the same line prefixed with \(lqnot \(rq if the test failed. Diagnostic 
+lines start with \(lq# \(rq, and the plan line \(lq1..\fIN\fP\(rq is printed at 
+the end by \fBprint_selftest_footer\fP().
+.PP
+Unlike most other test frameworks, all test macros and \fBlst_ok\fP() return 0 
+if the test succeeds and 1 if it fails, the usual C convention. The return 
+value can be added to a counter or used to print extra diagnostics when a test 
+fails. All test descriptions are printf\-style format strings, followed by 
+optional arguments.
+.PP
+The program can be compiled without the test suite by defining the 
+\fBNO_SELFTEST\fP preprocessor macro, guarding the test code and the inclusion 
+of \fBselftest.h\fP with \fB#ifndef NO_SELFTEST\fP, and leaving out 
+\fBselftest.c\fP from the build. The library itself does not check this macro; 
+it is a convention used by \fBlst\-demo\fP(1).
+.PP
+This page is an overview. The comments in \fBselftest.h\fP and \fBselftest.c\fP 
+are the definitive reference for the exact prototypes, parameters and behaviour 
+of each macro and function.
+.SH MACROS
+.SS Test macros
+Each macro performs one test and prints one TAP line. The last parameter 
+\fIdesc\fP is the printf\-style test description, followed by optional 
+arguments.
+.TP
+\fBOK_EQUAL\fP(\fIa\fP, \fIb\fP, \fIdesc\fP, ...)
+Succeeds if \fIa\fP \fB==\fP \fIb\fP.
+.TP
+\fBOK_NOTEQUAL\fP(\fIa\fP, \fIb\fP, \fIdesc\fP, ...)
+Succeeds if \fIa\fP \fB!=\fP \fIb\fP.
+.TP
+\fBOK_TRUE\fP(\fIval\fP, \fIdesc\fP, ...)
+Succeeds if \fIval\fP is true (non\-zero).
+.TP
+\fBOK_FALSE\fP(\fIval\fP, \fIdesc\fP, ...)
+Succeeds if \fIval\fP is false (zero).
+.TP
+\fBOK_SUCCESS\fP(\fIfunc\fP, \fIdesc\fP, ...)
+Succeeds if \fIfunc\fP is 0, for functions that return 0 on success.
+.TP
+\fBOK_FAILURE\fP(\fIfunc\fP, \fIdesc\fP, ...)
+Succeeds if \fIfunc\fP is non\-zero, for functions that return non\-zero on 
+failure.
+.TP
+\fBOK_NULL\fP(\fIp\fP, \fIdesc\fP, ...)
+Succeeds if the pointer \fIp\fP is NULL.
+.TP
+\fBOK_NOTNULL\fP(\fIp\fP, \fIdesc\fP, ...)
+Succeeds if the pointer \fIp\fP is not NULL.
+.TP
+\fBOK_STRCMP\fP(\fIa\fP, \fIb\fP, \fIdesc\fP, ...)
+Succeeds if the strings \fIa\fP and \fIb\fP are identical.
+.TP
+\fBOK_STRNCMP\fP(\fIa\fP, \fIb\fP, \fIlen\fP, \fIdesc\fP, ...)
+Succeeds if the first \fIlen\fP characters of the strings \fIa\fP and \fIb\fP 
+are identical.
+.TP
+\fBOK_MEMCMP\fP(\fIa\fP, \fIb\fP, \fIlen\fP, \fIdesc\fP, ...)
+Succeeds if the first \fIlen\fP bytes of the buffers \fIa\fP and \fIb\fP are 
+identical. The buffers may contain null bytes.
+.TP
+\fBOK_ERROR\fP(\fIdesc\fP, ...)
+Always fails. Used to report unexpected errors, typically inside a conditional.
+.SS Line number variants
+\fBOK_EQUAL_L\fP, \fBOK_ERROR_L\fP, \fBOK_FAILURE_L\fP, \fBOK_FALSE_L\fP, 
+\fBOK_MEMCMP_L\fP, \fBOK_NOTEQUAL_L\fP, \fBOK_NOTNULL_L\fP, \fBOK_NULL_L\fP, 
+\fBOK_STRCMP_L\fP, \fBOK_STRNCMP_L\fP, \fBOK_SUCCESS_L\fP and \fBOK_TRUE_L\fP 
+work like the macros above, but take two extra parameters, \fIfile\fP and 
+\fIlinenum\fP, right before \fIdesc\fP. They are meant for helper functions 
+that are called from many places, so the TAP output can show the file name and 
+line number of the caller instead of the line inside the helper function.
+.SS Command tests
+These macros execute \fIcmd\fP, a NULL\-terminated argument array (see 
+\fBchp\fP below), and check its standard output, standard error and exit status 
+against \fIexp_stdout\fP, \fIexp_stderr\fP and \fIexp_retval\fP. The last 
+parameter \fIdesc\fP is the printf\-style test description, followed by 
+optional arguments. Each call prints up to three TAP lines, marked 
+\(lq(stdout)\(rq, \(lq(stderr)\(rq and \(lq(retval)\(rq. If \fIexp_stdout\fP or 
+\fIexp_stderr\fP is NULL, that stream is not checked. An empty string does not 
+skip the check, and the corresponding output must be empty. The \fBEXECSTR\fP 
+macro expands to a placeholder. When that placeholder occurs in 
+\fIexp_stdout\fP or \fIexp_stderr\fP, it is replaced with the value of 
+\fBlst_execname\fP. The letters \fBEXECSTR\fP inside a string are not replaced. 
+If Valgrind output is found in standard error, an extra failing test is 
+printed. Because \fIcmd\fP is usually a compound literal containing commas, it 
+must be surrounded by parentheses, for example \fBsc\fP((\fBchp\fP{ 
+\fBlst_execname\fP, "\-\-version", NULL }), ...).
+.TP
+\fBsc\fP(\fIcmd\fP, \fIexp_stdout\fP, \fIexp_stderr\fP, \fIexp_retval\fP, ...)
+The expected output strings must occur as substrings of the actual output.
+.TP
+\fBtc\fP(\fIcmd\fP, \fIexp_stdout\fP, \fIexp_stderr\fP, \fIexp_retval\fP, ...)
+The actual output must be identical to the expected output strings.
+.TP
+\fBrc\fP(\fIcmd\fP, \fIexp_stdout\fP, \fIexp_stderr\fP, \fIexp_retval\fP, ...)
+The actual output must match the expected strings as POSIX extended regular 
+expressions. The match is unanchored. Without \fB^\fP and \fB$\fP, a match 
+anywhere in the output succeeds.
+.SS Output file tests
+.TP
+\fBverify_output_files\fP(\fIdesc\fP, \fIexp_stdout\fP, \fIexp_stderr\fP)
+Checks that the standard output and standard error captured with 
+\fBlst_init_output_files\fP() are identical to \fIexp_stdout\fP and 
+\fIexp_stderr\fP. NULL skips the check for that stream. Note that \fIdesc\fP is 
+the first parameter and is not a format string. An empty string requires the 
+captured output to be empty.
+.SS Diagnostic macros
+.TP
+\fBprint_gotexp_int\fP(\fIgot\fP, \fIexp\fP)
+.TQ
+\fBprint_gotexp_ulong\fP(\fIgot\fP, \fIexp\fP)
+.TQ
+\fBprint_gotexp_size_t\fP(\fIgot\fP, \fIexp\fP)
+.TQ
+\fBprint_gotexp_double\fP(\fIgot\fP, \fIexp\fP)
+If the values differ, print the actual and expected values as diagnostic lines. 
+Each argument is evaluated once.
+.TP
+\fBprint_gotexp_nostr\fP(\fIseq\fP, \fIgot\fP, \fIexp\fP)
+Formats \fIgot\fP and \fIexp\fP with the printf sequence \fIseq\fP and passes 
+the results to \fBprint_gotexp\fP().
+.TP
+\fBdiag_errno\fP()
+Prints the value of \fIerrno\fP and its error message as a diagnostic line and 
+resets \fIerrno\fP to 0.
+.TP
+\fBfailed_ok\fP(\fIa\fP)
+Reports a failing test saying that \fIa\fP failed, including the function name, 
+line number and the \fIerrno\fP message if \fIerrno\fP is set. Resets 
+\fIerrno\fP to 0.
+.TP
+\fBDIAG_DEBL\fP
+Prints a debug line with the current file name, function and line number.
+.SS Helper macros
+.TP
+\fBchp\fP
+Expands to the cast \fB(char *[])\fP, used to write command arrays as compound 
+literals: \fBchp\fP{ "echo", "hello", NULL }.
+.TP
+\fBEXECSTR\fP
+Macro that expands to a placeholder. \fBsc\fP, \fBtc\fP and \fBrc\fP replace 
+that placeholder with \fBlst_execname\fP. Write it outside the quotes, as in 
+\(lqprefix \(rq \fBEXECSTR\fP \(lq suffix\(rq.
+.TP
+\fBno_null\fP(\fIa\fP)
+Evaluates to \fIa\fP, or to the string "(null)" if \fIa\fP is NULL.
+.SS Configuration macros
+.TP
+\fBLST_TMPDIR\fP
+Name of the temporary directory used by the tests. Defaults to 
+\(lq.selftest.tmp\(rq if not defined when \fBselftest.h\fP is included. It is a 
+compile\-time setting, for example
+.RS
+.PP
+.EX
+cc \-D\(aqLST_TMPDIR=".prog\-test.tmp"\(aq ...
+.EE
+.PP
+and must have the same value in all files that are compiled with the test 
+suite.
+.RE
+.TP
+\fBLST_VERSION\fP
+.TQ
+\fBLST_DATE\fP
+Version and date strings of the library. Inserted by \fBmake export\fP.
+.SH FUNCTIONS
+Only the functions meant to be called directly are listed here. The functions 
+\fBsc_func\fP() and similar are the implementation behind the macros of the 
+same name and should not be called directly.
+.SS TAP output
+.TP
+\fBlst_ok\fP()
+Prints an \(lqok\(rq line if its first argument is 0, otherwise a \(lqnot 
+ok\(rq line, and returns 0 or 1. Used by all the test macros.
+.TP
+\fBlst_ok_va\fP()
+Same as \fBlst_ok\fP(), but takes a \fIva_list\fP.
+.TP
+\fBlst_diag\fP()
+Prints a printf\-style diagnostic message. Every line is prefixed with \(lq# 
+\(rq, and a newline is added at the end.
+.TP
+\fBprint_gotexp\fP()
+If the strings \fIgot\fP and \fIexp\fP differ, prints both as diagnostic lines. 
+NULL is shown as \(lq(null)\(rq.
+.TP
+\fBlst_bail_out\fP()
+Prints \(lqBail out!\(rq with an optional message and exits with 
+\fBEXIT_FAILURE\fP.
+.TP
+\fBprint_selftest_footer\fP()
+Prints the TAP plan, and a diagnostic line with the number of failed tests if 
+any failed.
+.TP
+\fBselftest_failcount\fP()
+Returns the number of failed tests so far.
+.SS Test environment
+.TP
+\fBget_execname\fP()
+Returns an allocated string suitable for \fBlst_execname\fP. If the argument 
+contains a slash, the directory part is converted to an absolute path; 
+otherwise, a copy is returned.
+.TP
+\fBlst_init_home\fP()
+Sets \fBHOME\fP to the absolute path of \fBLST_TMPDIR\fP, so the tested code 
+doesn't touch the real home directory. The directory is created and removed 
+again to find the path, so it must not exist. Each step is reported as a test.
+.TP
+\fBlst_init_output_files\fP()
+Redirects standard output and standard error to files in \fBLST_TMPDIR\fP, 
+which must exist. Used to test functions that print.
+.TP
+\fBlst_restore_output_files\fP()
+Restores standard output and standard error after 
+\fBlst_init_output_files\fP().
+.TP
+\fBlst_cleanup_tempdir\fP()
+Deletes the output files created by \fBlst_init_output_files\fP(), one test per 
+deleted file.
+.TP
+\fBlst_is_root\fP()
+Returns 1 if the process runs as root, otherwise 0. Useful for skipping tests 
+that depend on file permissions.
+.SS Command execution
+.TP
+\fBlst_streams_exec\fP()
+Executes a command with the input in a \fBstruct lst_streams\fP as standard 
+input and stores standard output, standard error and the exit status in the 
+struct. Returns the exit status.
+.TP
+\fBlst_streams_init\fP()
+.TQ
+\fBlst_streams_free\fP()
+Initialize or free a \fBstruct lst_streams\fP.
+.SS Buffers and files
+.TP
+\fBlst_binbuf_init\fP()
+.TQ
+\fBlst_binbuf_free\fP()
+Initialize or free a \fBstruct lst_binbuf\fP.
+.TP
+\fBlst_binbuf_cpy\fP()
+Copies a \fBstruct lst_binbuf\fP, including any null bytes.
+.TP
+\fBlst_read_from_fp\fP()
+Reads everything from a \fIFILE\fP pointer into an allocated buffer.
+.TP
+\fBlst_read_from_file\fP()
+Returns the contents of a file as an allocated string.
+.TP
+\fBlst_file_exists\fP()
+Returns true if the path exists. Broken symlinks count as existing.
+.SS Strings
+.TP
+\fBlst_allocstr\fP()
+.TQ
+\fBlst_allocstr_va\fP()
+Return an allocated string created from a printf\-style format.
+.TP
+\fBlst_str_replace\fP()
+Returns an allocated copy of a string with all occurrences of a substring 
+replaced.
+.TP
+\fBlst_count_substr\fP()
+Returns the number of non\-overlapping occurrences of a substring.
+.TP
+\fBlst_re_check\fP()
+Returns 0 if a string matches a POSIX extended regular expression, 1 if not, or 
+\-1 if the expression is invalid. The match is unanchored. On failure to 
+compile the expression, the error is written to standard error.
+.SH TYPES
+.TP
+\fBstruct lst_binbuf\fP
+A buffer that may contain null bytes, with the members \fIbuf\fP, \fIlen\fP 
+(bytes used) and \fIalloc\fP (bytes allocated).
+.TP
+\fBstruct lst_streams\fP
+Three \fBstruct lst_binbuf\fP members, \fIin\fP, \fIout\fP and \fIerr\fP, for 
+standard input, output and error, and \fIret\fP, the exit status.
+.SH VARIABLES
+.TP
+\fBlst_execname\fP
+Path of the program under test. Must be set, usually with \fBget_execname\fP(), 
+before \fBsc\fP, \fBtc\fP or \fBrc\fP are used. If it is NULL, those macros 
+silently skip the stdout and stderr checks.
+.TP
+\fBlst_use_valgrind\fP
+If true, \fBlst_streams_exec\fP(), and thereby \fBsc\fP, \fBtc\fP and \fBrc\fP, 
+run the commands under \fBvalgrind\fP(1) with the options \fB\-q 
+\-\-error\-exitcode=1 \-\-leak\-check=full \-\-show\-leak\-kinds=all\fP. 
+Defaults to false.
+.TP
+\fBlst_testnum\fP
+The number of tests executed so far.
+.SH RETURN VALUE
+All \fBOK_*\fP macros, \fBlst_ok\fP() and \fBlst_ok_va\fP() return 0 if the 
+test succeeds and 1 if it fails.
+.PP
+\fBselftest_failcount\fP() returns the number of failed tests, and 
+\fBprint_selftest_footer\fP() returns the number of executed tests. A test 
+runner usually ends with
+.PP
+.RS
+.EX
+return selftest_failcount() ? EXIT_FAILURE : EXIT_SUCCESS;
+.EE
+.RE
+.PP
+Functions that return an allocated string return NULL on error, and the caller 
+must free the result.
+.SH ENVIRONMENT
+The library does not read any environment variables itself. 
+\fBlst_init_home\fP() sets \fBHOME\fP for the running process and the commands 
+it executes. Commands run by \fBlst_streams_exec\fP(), including 
+\fBvalgrind\fP(1), are looked up in \fBPATH\fP by \fBexecvp\fP(3).
+.PP
+\fBLST_TMPDIR\fP is a preprocessor macro, not an environment variable.
+.SH FILES
+.TP
+\fBLST_TMPDIR\fP/stdout.txt
+.TQ
+\fBLST_TMPDIR\fP/stderr.txt
+Captured output from \fBlst_init_output_files\fP().
+.SH EXAMPLES
+A program that prints the sum of 2 and 3, and runs its tests when started with 
+\fB\-\-selftest\fP:
+.PP
+.RS
+.EX
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#ifndef NO_SELFTEST
+#include "selftest.h"
+#endif
+
+static int add(const int a, const int b)
+{
+        return a + b;
+}
+
+#ifndef NO_SELFTEST
+static int run_tests(const char *argv0)
+{
+        lst_execname = get_execname(argv0);
+        if (!lst_execname)
+                return EXIT_FAILURE;
+
+        lst_diag("Test add()");
+        OK_EQUAL(add(2, 3), 5, "add(2, 3) is 5");
+        print_gotexp_int(add(2, 3), 5);
+        OK_TRUE(add(\-1, 1) == 0, "add(%d, %d) is 0", \-1, 1);
+
+        lst_diag("Test the executable");
+        tc((chp{ lst_execname, NULL }), "5\en", "", EXIT_SUCCESS,
+           "Prints the sum");
+
+        print_selftest_footer();
+        free(lst_execname);
+
+        return selftest_failcount() ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+#endif
+
+int main(int argc, char *argv[])
+{
+#ifndef NO_SELFTEST
+        if (argc > 1 && !strcmp(argv[1], "\-\-selftest"))
+                return run_tests(argv[0]);
+#else
+        (void)argc;
+        (void)argv;
+#endif
+        printf("%d\en", add(2, 3));
+
+        return EXIT_SUCCESS;
+}
+.EE
+.RE
+.PP
+Build and run it with and without the test suite:
+.PP
+.RS
+.EX
+cc \-o sum sum.c selftest.c
+\&./sum \-\-selftest
+cc \-DNO_SELFTEST \-o sum sum.c
+.EE
+.RE
+.SH SEE ALSO
+\fBlst\-demo\fP(1),
+\fBselftest.h\fP,
+TAP specification <https://testanything.org/>
+.SH AUTHOR
+Written by \[/O]yvind A.\& Holm <sunny@sunbase.org>
+.SH COPYRIGHT
+(C)opyleft 2026\- \[/O]yvind A.\& Holm <sunny@sunbase.org>
+.PP
+This library is free software; you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation; either version 2.1 of the License, or (at your option) any 
+later version.
+.PP
+This library is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+.PP
+You should have received a copy of the GNU Lesser General Public License along 
+with this library; if not, see <https://www.gnu.org/licenses/>.
