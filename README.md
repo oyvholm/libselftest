@@ -313,8 +313,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 document are to be interpreted as described in [RFC 
 2119](https://www.rfc-editor.org/rfc/rfc2119.txt).
 
------
-
 <!--
 vim: set ts=2 sw=2 sts=2 tw=72 et fo=tcqwn fenc=utf8 :
 vim: set com=b\:#,fb\:-,fb\:*,n\:> ft=markdown :

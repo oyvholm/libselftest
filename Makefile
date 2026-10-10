@@ -16,14 +16,15 @@ all:
 	echo '<html>' >$@.tmp
 	echo '<head>' >>$@.tmp
 	echo '<meta charset="UTF-8" />' >>$@.tmp
-	echo '<title>$* - lst-demo</title>' >>$@.tmp
+	echo '<title>$* - libselftest</title>' >>$@.tmp
 	echo '</head>' >>$@.tmp
 	echo '<body>' >>$@.tmp
 	cmark $*.md >>$@.tmp
 	if test -n "$$(git log -1 --format=%h $*.md 2>/dev/null)"; then \
-		(echo 'Generated from `$*.md`'; \
-		git log -1 --format='revision `%h` (%ci)' \
-		    $*.md) | cmark >>$@.tmp; \
+		(echo '---'; \
+		 echo 'Generated from `$*.md`'; \
+		 git log -1 --format='revision `%h` (%ci)' $*.md) \
+		 | cmark >>$@.tmp; \
 	fi
 	echo '</body>' >>$@.tmp
 	echo '</html>' >>$@.tmp
