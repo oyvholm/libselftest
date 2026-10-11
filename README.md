@@ -78,7 +78,10 @@ For a complete list of test macros, refer to the overview in
 
 ### Status
 
-Stable and ready for production use. Compiles with no warnings and 
+Stable and ready for production use. The programming interface may 
+change slightly until v1.0.0 is tagged.
+
+It compiles with no warnings, has no known Valgrind errors, and is 
 tested on the following platforms:
 
 - Linux
@@ -115,9 +118,9 @@ suite by compiling with `-DNO_SELFTEST`.
 4. Write your tests using the `OK_*` macros.
 
 See the `lst-demo` program in this repository for a complete working 
-example, and the `libselftest`(3) man page for an overview of all 
-macros and functions. After `make`, it can be read with 
-`man ./libselftest.3` in the `src` directory.
+example, and the `libselftest`(3) man page for an overview of all macros 
+and functions. After `make`, it can be read with `man ./libselftest.3` 
+in the `src` directory.
 
 ## Download
 
@@ -193,10 +196,10 @@ Remove all generated files except `tags`.
 
 ### make docsync
 
-Check that all public macros, functions, structs and extern variables 
-in `selftest.h` are mentioned in bold in `src/libselftest.3.man`, so the 
-man page doesn't fall behind when names are added or renamed. It is 
-also executed by `make testsrc`.
+Check that all public macros, functions, structs and extern variables in 
+`selftest.h` are mentioned in bold in `src/libselftest.3.man`, so the 
+man page doesn't fall behind when names are added or renamed. It is also 
+executed by `make testsrc`.
 
 ### make edit
 
