@@ -5,6 +5,7 @@ IGNFILES  =
 IGNFILES += -e ^LICENSE
 LONGLINES_FILES  =
 LONGLINES_FILES += Makefile
+LONGLINES_FILES += NEWS.md
 LONGLINES_FILES += README.md
 
 .PHONY: all
@@ -44,6 +45,8 @@ cflags:
 
 .PHONY: clean
 clean:
+	rm -f NEWS.html NEWS.html.tmp
+	rm -f NEWS.pdf NEWS.pdf.tmp
 	rm -f README.html README.html.tmp
 	rm -f README.pdf README.pdf.tmp
 	cd src && $(MAKE) $@
@@ -58,6 +61,7 @@ FORCE:
 
 .PHONY: html
 html:
+	$(MAKE) NEWS.html
 	$(MAKE) README.html
 	cd src && $(MAKE) $@
 
@@ -81,6 +85,7 @@ longlines:
 
 .PHONY: pdf
 pdf:
+	$(MAKE) NEWS.pdf
 	$(MAKE) README.pdf
 	cd src && $(MAKE) $@
 
