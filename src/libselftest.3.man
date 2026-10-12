@@ -43,7 +43,7 @@ the end by \fBprint_selftest_footer\fP().
 Unlike most other test frameworks, all test macros and \fBlst_ok\fP() return 0 
 if the test succeeds and 1 if it fails, the usual C convention. The return 
 value can be added to a counter or used to print extra diagnostics when a test 
-fails. All test descriptions are printf\-style format strings, followed by 
+fails. All test descriptions are printf-style format strings, followed by 
 optional arguments.
 .PP
 The program can be compiled without the test suite by defining the 
@@ -58,7 +58,7 @@ of each macro and function.
 .SH MACROS
 .SS Test macros
 Each macro performs one test and prints one TAP line. The last parameter 
-\fIdesc\fP is the printf\-style test description, followed by optional 
+\fIdesc\fP is the printf-style test description, followed by optional 
 arguments.
 .TP
 \fBOK_EQUAL\fP(\fIa\fP, \fIb\fP, \fIdesc\fP, ...)
@@ -68,7 +68,7 @@ Succeeds if \fIa\fP \fB==\fP \fIb\fP.
 Succeeds if \fIa\fP \fB!=\fP \fIb\fP.
 .TP
 \fBOK_TRUE\fP(\fIval\fP, \fIdesc\fP, ...)
-Succeeds if \fIval\fP is true (non\-zero).
+Succeeds if \fIval\fP is true (non-zero).
 .TP
 \fBOK_FALSE\fP(\fIval\fP, \fIdesc\fP, ...)
 Succeeds if \fIval\fP is false (zero).
@@ -77,7 +77,7 @@ Succeeds if \fIval\fP is false (zero).
 Succeeds if \fIfunc\fP is 0, for functions that return 0 on success.
 .TP
 \fBOK_FAILURE\fP(\fIfunc\fP, \fIdesc\fP, ...)
-Succeeds if \fIfunc\fP is non\-zero, for functions that return non\-zero on 
+Succeeds if \fIfunc\fP is non-zero, for functions that return non-zero on 
 failure.
 .TP
 \fBOK_NULL\fP(\fIp\fP, \fIdesc\fP, ...)
@@ -108,21 +108,21 @@ work like the macros above, but take two extra parameters, \fIfile\fP and
 that are called from many places, so the TAP output can show the file name and 
 line number of the caller instead of the line inside the helper function.
 .SS Command tests
-These macros execute \fIcmd\fP, a NULL\-terminated argument array (see 
-\fBchp\fP below), and check its standard output, standard error and exit status 
-against \fIexp_stdout\fP, \fIexp_stderr\fP and \fIexp_retval\fP. The last 
-parameter \fIdesc\fP is the printf\-style test description, followed by 
-optional arguments. Each call prints up to three TAP lines, marked 
-\(lq(stdout)\(rq, \(lq(stderr)\(rq and \(lq(retval)\(rq. If \fIexp_stdout\fP or 
-\fIexp_stderr\fP is NULL, that stream is not checked. An empty string does not 
-skip the check, and the corresponding output must be empty. The \fBEXECSTR\fP 
-macro expands to a placeholder. When that placeholder occurs in 
-\fIexp_stdout\fP or \fIexp_stderr\fP, it is replaced with the value of 
-\fBlst_execname\fP. The letters \fBEXECSTR\fP inside a string are not replaced. 
-If Valgrind output is found in standard error, an extra failing test is 
-printed. Because \fIcmd\fP is usually a compound literal containing commas, it 
-must be surrounded by parentheses, for example \fBsc\fP((\fBchp\fP{ 
-\fBlst_execname\fP, "\-\-version", NULL }), ...).
+These macros execute \fIcmd\fP, a NULL-terminated argument array (see \fBchp\fP 
+below), and check its standard output, standard error and exit status against 
+\fIexp_stdout\fP, \fIexp_stderr\fP and \fIexp_retval\fP. The last parameter 
+\fIdesc\fP is the printf-style test description, followed by optional 
+arguments. Each call prints up to three TAP lines, marked \(lq(stdout)\(rq, 
+\(lq(stderr)\(rq and \(lq(retval)\(rq. If \fIexp_stdout\fP or \fIexp_stderr\fP 
+is NULL, that stream is not checked. An empty string does not skip the check, 
+and the corresponding output must be empty. The \fBEXECSTR\fP macro expands to 
+a placeholder. When that placeholder occurs in \fIexp_stdout\fP or 
+\fIexp_stderr\fP, it is replaced with the value of \fBlst_execname\fP. The 
+letters \fBEXECSTR\fP inside a string are not replaced. If Valgrind output is 
+found in standard error, an extra failing test is printed. Because \fIcmd\fP is 
+usually a compound literal containing commas, it must be surrounded by 
+parentheses, for example \fBsc\fP((\fBchp\fP{ \fBlst_execname\fP, 
+"\-\-version", NULL }), ...).
 .TP
 \fBsc\fP(\fIcmd\fP, \fIexp_stdout\fP, \fIexp_stderr\fP, \fIexp_retval\fP, ...)
 The expected output strings must occur as substrings of the actual output.
@@ -187,7 +187,7 @@ Evaluates to \fIa\fP, or to the string "(null)" if \fIa\fP is NULL.
 \fBLST_TMPDIR\fP
 Name of the temporary directory used by the tests. Defaults to 
 \(lq.selftest.tmp\(rq if not defined when \fBselftest.h\fP is included. It is a 
-compile\-time setting, for example
+compile-time setting, for example
 .RS
 .PP
 .EX
@@ -216,7 +216,7 @@ ok\(rq line, and returns 0 or 1. Used by all the test macros.
 Same as \fBlst_ok\fP(), but takes a \fIva_list\fP.
 .TP
 \fBlst_diag\fP()
-Prints a printf\-style diagnostic message. Every line is prefixed with \(lq# 
+Prints a printf-style diagnostic message. Every line is prefixed with \(lq# 
 \(rq, and a newline is added at the end.
 .TP
 \fBprint_gotexp\fP()
@@ -294,14 +294,14 @@ Returns true if the path exists. Broken symlinks count as existing.
 \fBlst_allocstr\fP()
 .TQ
 \fBlst_allocstr_va\fP()
-Return an allocated string created from a printf\-style format.
+Return an allocated string created from a printf-style format.
 .TP
 \fBlst_str_replace\fP()
 Returns an allocated copy of a string with all occurrences of a substring 
 replaced.
 .TP
 \fBlst_count_substr\fP()
-Returns the number of non\-overlapping occurrences of a substring.
+Returns the number of non-overlapping occurrences of a substring.
 .TP
 \fBlst_re_check\fP()
 Returns 0 if a string matches a POSIX extended regular expression, 1 if not, or 

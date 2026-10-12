@@ -1,13 +1,13 @@
 .\" lst-demo.1.man
 .\" File ID: 9c265304-4a58-11f1-9c2e-83850402c3ce
-.TH LST-DEMO 1 "RPL_DATE" "lst-demo\-RPL_VERSION"
+.TH LST\-DEMO 1 "RPL_DATE" "lst\-demo\-RPL_VERSION"
 .SH NAME
-lst-demo \- libselftest demo program
+lst\-demo \- libselftest demo program
 .SH SYNOPSIS
-.B lst-demo
+.B lst\-demo
 [\fIOPTIONS\fP]
 .SH DESCRIPTION
-\fBlst-demo\fP is a small demonstration program that shows how to integrate 
+\fBlst\-demo\fP is a small demonstration program that shows how to integrate 
 \fBlibselftest\fP into a C program. It produces TAP (Test Anything Protocol) 
 output and supports both unit-style function tests and full executable tests.
 .PP
@@ -49,16 +49,16 @@ No error.
 Some kind of error occurred.
 .SH EXAMPLES
 .TP
-\fClst-demo \-\-selftest\fP
+\fClst\-demo \-\-selftest\fP
 Execute the tests.
 .TP
-\fClst-demo \-\-selftest func\fP
+\fClst\-demo \-\-selftest func\fP
 Run only function tests (no tests of the binary itself).
 .TP
-\fClst-demo \-\-selftest exec\fP
+\fClst\-demo \-\-selftest exec\fP
 Run only tests that execute the binary (no function tests).
 .TP
-\fClst-demo \-\-valgrind\fP
+\fClst\-demo \-\-valgrind\fP
 Execute the tests with Valgrind checking.
 .TP
 \fCmake clean all NO_SELFTEST=1\fP
