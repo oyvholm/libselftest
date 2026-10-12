@@ -6,8 +6,8 @@
  *
  * Available from:
  *
- *   https://gitlab.com/oyvholm/libselftest
  *   https://github.com/oyvholm/libselftest
+ *   https://gitlab.com/oyvholm/libselftest
  *
  * (C)opyleft 2026- Øyvind A. Holm <sunny@sunbase.org>
  *

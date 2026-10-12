@@ -27,9 +27,9 @@ executable tests.
   An execution rate of roughly 4000 tests per second on a normal 
   consumer laptop is typical. Real-world examples:
 
-  - [geocalc](https://gitlab.com/oyvholm/geocalc) — 1122 tests in 0.287 
+  - [geocalc](https://github.com/oyvholm/geocalc) — 1122 tests in 0.287 
     seconds ≈ 3909 tests/s
-  - [suuid](https://gitlab.com/oyvholm/suuid) — 979 tests in 0.234 
+  - [suuid](https://github.com/oyvholm/suuid) — 979 tests in 0.234 
     seconds ≈ 4183 tests/s
 
 - **Direct access to functions**\
@@ -124,17 +124,17 @@ in the `src` directory.
 
 ## Download
 
-The main Git repository is stored at GitLab:
-
-- URL: <https://gitlab.com/oyvholm/libselftest>
-- SSH clone: git@gitlab.com:oyvholm/libselftest.git
-- https clone: <https://gitlab.com/oyvholm/libselftest.git>
-
-The repository is mirrored to GitHub:
+The main Git repository is stored at GitHub:
 
 - URL: <https://github.com/oyvholm/libselftest>
 - SSH clone: git@github.com:oyvholm/libselftest.git
 - https clone: <https://github.com/oyvholm/libselftest.git>
+
+The repository is mirrored to GitLab:
+
+- URL: <https://gitlab.com/oyvholm/libselftest>
+- SSH clone: git@gitlab.com:oyvholm/libselftest.git
+- https clone: <https://gitlab.com/oyvholm/libselftest.git>
 
 ## Development
 
@@ -235,7 +235,7 @@ example, if a function is inlined or optimized differently, lines that
 were once skipped might now be covered by tests.
 
 These commands need the `gcov-cmt` script, available from 
-<https://gitlab.com/oyvholm/utils/raw/master/gcov-cmt>.
+<https://github.com/oyvholm/utils/raw/master/gcov-cmt>.
 
 ### make gdb
 
