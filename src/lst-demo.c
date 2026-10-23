@@ -220,7 +220,11 @@ static int usage(const struct Options *o, const int retval)
 		print_version(o);
 		puts("");
 	}
-	printf("Usage: %s [options]\n", progname);
+	printf("Usage: %s [options] [integer [...]]\n", progname);
+	printf("\n");
+	printf("Print the sum of the integer arguments. Use \"--\" before"
+	       " the arguments \n"
+	       "if any of them are negative.\n");
 	printf("\n");
 	printf("Options:\n");
 	printf("\n");
@@ -401,6 +405,53 @@ static int setup_options(struct Options *o, const int argc, char *argv[])
 }
 
 /*
+ * arg_sum() - Adds the integers in the NULL-terminated array `args` and writes 
+ * the sum as a decimal number to `buf`, which has room for `bufsize` bytes 
+ * including the terminating null byte. An empty array gives the sum 0. Every 
+ * element must be a complete integer in base 10, optionally with a leading 
+ * sign. Returns `buf` if ok. If an element isn't an integer, the sum doesn't 
+ * fit in a `long long`, or `buf` is too small, an error message is printed to 
+ * stderr and NULL is returned.
+ */
+
+const char *arg_sum(char *buf, const size_t bufsize, char *const args[])
+{
+	long long sum = 0;
+	size_t i;
+	int len;
+
+	assert(buf);
+	assert(args);
+
+	for (i = 0; args[i]; i++) {
+		char *endp;
+		long long val;
+
+		errno = 0;
+		val = strtoll(args[i], &endp, 10);
+		if (endp == args[i] || *endp) {
+			errno = 0;
+			myerror("%s: Not an integer", args[i]);
+			return NULL;
+		}
+		if (errno || (val > 0 && sum > LLONG_MAX - val)
+		    || (val < 0 && sum < LLONG_MIN - val)) {
+			errno = 0;
+			myerror("%s: Sum is out of range", args[i]);
+			return NULL;
+		}
+		sum += val;
+	}
+	len = snprintf(buf, bufsize, "%lld", sum);
+	if (len < 0 || (size_t)len >= bufsize) {
+		myerror("%s(): Buffer is too small", __func__);
+		return NULL;
+	}
+
+	return buf;
+}
+
+/*
  * main()
  */
 
@@ -431,20 +482,29 @@ int main(int argc, char *argv[])
 	if (opt.license)
 		return print_license();
 
-	if (optind < argc) { /* gncov */
+	if (optind < argc) {
 		int t;
 
-		for (t = optind; t < argc; t++) { /* gncov */
-			msg(4, "%s(): Non-option arg %d: %s", /* gncov */
-			       __func__, t, argv[t]); /* gncov */
+		for (t = optind; t < argc; t++) {
+			msg(4, "%s(): Non-option arg %d: %s",
+			       __func__, t, argv[t]);
 		}
 	}
 
+	{
+		char buf[ARG_SUM_BUFSIZE];
+		const char *sum = arg_sum(buf, sizeof(buf), argv + optind);
+
+		if (sum)
+			puts(sum);
+		else
+			retval = EXIT_FAILURE;
+	}
 	check_errno;
 
-	msg(4, "Returning from %s() with value %d", /* gncov */
+	msg(4, "Returning from %s() with value %d",
 	       __func__, retval);
-	return retval; /* gncov */
+	return retval;
 }
 
 /* vim: set ts=8 sw=8 sts=8 noet fo+=w tw=79 fenc=UTF-8 : */

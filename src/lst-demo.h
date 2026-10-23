@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <getopt.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -59,6 +60,9 @@
 #endif
 
 #define failed(a)  myerror("%s():%d: %s failed", __func__, __LINE__, (a))
+/* Room for LLONG_MIN in decimal and the null byte */
+#define ARG_SUM_BUFSIZE  32
+
 #define no_null(a)  ((a) ? (a) : "(null)")
 
 struct Options {
@@ -84,6 +88,7 @@ int msg(const int verbose, const char *format, ...);
 const char *std_strerror(const int errnum);
 int myerror(const char *format, ...);
 void init_opt(struct Options *dest);
+const char *arg_sum(char *buf, const size_t bufsize, char *const args[]);
 
 /* tests.c */
 int opt_selftest(char *execname, const struct Options *o);

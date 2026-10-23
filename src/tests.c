@@ -147,6 +147,105 @@ static void test_myerror(void)
 	free(exp_stderr);
 }
 
+/*
+ * chk_arg_sum() - Used by test_arg_sum(). Calls arg_sum() with `args` and a 
+ * buffer of size `bufsize`, and verifies that the return value is `exp` (NULL 
+ * means that NULL is expected) and that stderr is `exp_stderr`. `desc` is a 
+ * short test description, and `linenum` is the `__LINE__` value from the 
+ * caller. Returns nothing.
+ */
+
+static void chk_arg_sum(const int linenum,
+                        char *const args[], const size_t bufsize,
+                        const char *exp, const char *exp_stderr,
+                        const char *desc)
+{
+	char buf[ARG_SUM_BUFSIZE];
+	const char *res;
+	char *orig_progname = progname, *s;
+
+	assert(args);
+	assert(bufsize <= sizeof(buf));
+	assert(exp_stderr);
+	assert(desc);
+
+	if (lst_init_output_files()) {
+		lst_restore_output_files(); /* gncov */
+		failed_ok("lst_init_output_files()"); /* gncov */
+		return; /* gncov */
+	}
+	progname = lst_execname;
+	res = arg_sum(buf, bufsize, args);
+	progname = orig_progname;
+	lst_restore_output_files();
+	if (exp) {
+		OK_STRCMP(no_null(res), exp, "%s (retval)", desc);
+	} else {
+		OK_NULL(res, "%s (retval is NULL)", desc);
+	}
+	s = *exp_stderr ? lst_allocstr("%s: %s\n", lst_execname, exp_stderr)
+	                : lst_allocstr("%s", "");
+	if (!s) {
+		failed_ok("lst_allocstr()"); /* gncov */
+		return; /* gncov */
+	}
+	verify_output_files(desc, "", s);
+	free(s);
+	cleanup_tempdir(__FILE__, linenum);
+}
+
+/*
+ * test_arg_sum() - Tests the arg_sum() function. Returns nothing.
+ */
+
+static void test_arg_sum(void)
+{
+	lst_diag("Test arg_sum()");
+	chk_arg_sum(__LINE__,
+	            chp{ NULL }, ARG_SUM_BUFSIZE, "0", "", "Empty list");
+	chk_arg_sum(__LINE__,
+	            chp{ "1", "2", "3", NULL }, ARG_SUM_BUFSIZE, "6", "",
+	            "1 + 2 + 3");
+	chk_arg_sum(__LINE__,
+	            chp{ "-3", "5", NULL }, ARG_SUM_BUFSIZE, "2", "",
+	            "-3 + 5");
+	chk_arg_sum(__LINE__,
+	            chp{ "-10", "-20", NULL }, ARG_SUM_BUFSIZE, "-30", "",
+	            "Only negative numbers");
+	chk_arg_sum(__LINE__,
+	            chp{ "9223372036854775807", NULL }, ARG_SUM_BUFSIZE,
+	            "9223372036854775807", "", "LLONG_MAX");
+	chk_arg_sum(__LINE__,
+	            chp{ "-9223372036854775808", NULL }, ARG_SUM_BUFSIZE,
+	            "-9223372036854775808", "", "LLONG_MIN fits in buffer");
+	chk_arg_sum(__LINE__,
+	            chp{ "1", "abc", NULL }, ARG_SUM_BUFSIZE, NULL,
+	            "abc: Not an integer", "Not an integer");
+	chk_arg_sum(__LINE__,
+	            chp{ "12x", NULL }, ARG_SUM_BUFSIZE, NULL,
+	            "12x: Not an integer", "Trailing garbage");
+	chk_arg_sum(__LINE__,
+	            chp{ "", NULL }, ARG_SUM_BUFSIZE, NULL,
+	            ": Not an integer", "Empty string");
+	chk_arg_sum(__LINE__,
+	            chp{ "9223372036854775807", "1", NULL }, ARG_SUM_BUFSIZE,
+	            NULL, "1: Sum is out of range", "LLONG_MAX + 1");
+	chk_arg_sum(__LINE__,
+	            chp{ "9223372036854775808", NULL }, ARG_SUM_BUFSIZE, NULL,
+	            "9223372036854775808: Sum is out of range",
+	            "Argument is larger than LLONG_MAX");
+	chk_arg_sum(__LINE__,
+	            chp{ "-9223372036854775808", "-1", NULL },
+	            ARG_SUM_BUFSIZE, NULL, "-1: Sum is out of range",
+	            "Below LLONG_MIN");
+	chk_arg_sum(__LINE__,
+	            chp{ "1000", NULL }, 4, NULL,
+	            "arg_sum(): Buffer is too small", "Buffer is too small");
+	chk_arg_sum(__LINE__,
+	            chp{ "1000", NULL }, 5, "1000", "",
+	            "Buffer is exactly big enough");
+}
+
 /******************************************************************************
             Test the executable file, no temporary directory needed
 ******************************************************************************/
@@ -270,6 +369,48 @@ static void test_standard_options(void)
 	   "Unknown option: \"Option error\" message is printed");
 }
 
+                          /*** Sum of arguments ***/
+
+/*
+ * test_sum_args() - Tests that the program prints the sum of its arguments. 
+ * Returns nothing.
+ */
+
+static void test_sum_args(void)
+{
+	lst_diag("Test sum of arguments");
+	tc((chp{ lst_execname, NULL }),
+	   "0\n",
+	   "",
+	   EXIT_SUCCESS,
+	   "No arguments, sum is 0");
+	tc((chp{ lst_execname, "1", "2", "3", NULL }),
+	   "6\n",
+	   "",
+	   EXIT_SUCCESS,
+	   "1 2 3");
+	tc((chp{ lst_execname, "--", "-3", "5", NULL }),
+	   "2\n",
+	   "",
+	   EXIT_SUCCESS,
+	   "-- -3 5");
+	tc((chp{ lst_execname, "1", "abc", NULL }),
+	   "",
+	   EXECSTR ": abc: Not an integer\n",
+	   EXIT_FAILURE,
+	   "1 abc: Not an integer");
+	tc((chp{ lst_execname, "9223372036854775807", "1", NULL }),
+	   "",
+	   EXECSTR ": 1: Sum is out of range\n",
+	   EXIT_FAILURE,
+	   "LLONG_MAX + 1 is out of range");
+	tc((chp{ lst_execname, "--", "-9223372036854775808", "-1", NULL }),
+	   "",
+	   EXECSTR ": -1: Sum is out of range\n",
+	   EXIT_FAILURE,
+	   "Sum below LLONG_MIN is out of range");
+}
+
 /******************************************************************************
               Test the executable file with a temporary directory
 ******************************************************************************/
@@ -297,6 +438,7 @@ static void functests_with_tempdir(void)
 
 	/* lst-demo.c */
 	test_myerror();
+	test_arg_sum();
 
 	result = rmdir(LST_TMPDIR);
 	OK_SUCCESS(result, "rmdir " LST_TMPDIR " after function tests");
@@ -371,6 +513,7 @@ static void test_executable(const struct Options *o)
 	test_valgrind_option();
 	print_version_info();
 	test_standard_options();
+	test_sum_args();
 	tests_with_tempdir();
 	print_version_info();
 }

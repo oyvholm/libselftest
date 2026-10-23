@@ -5,11 +5,17 @@
 lst\-demo \- libselftest demo program
 .SH SYNOPSIS
 .B lst\-demo
-[\fIOPTIONS\fP]
+[\fIOPTIONS\fP] [\fIINTEGER\fP ...]
 .SH DESCRIPTION
 \fBlst\-demo\fP is a small demonstration program that shows how to integrate 
 \fBlibselftest\fP into a C program. It produces TAP (Test Anything Protocol) 
 output and supports both unit-style function tests and full executable tests.
+.PP
+Unless an option says otherwise, \fBlst\-demo\fP adds the integers specified on 
+the command line and prints the sum to stdout. If no integers are specified, 
+the sum is 0. Each argument must be a complete base 10 integer, and the sum 
+must fit in a \fBlong long\fP. Use \fB\-\-\fP before the arguments if any of 
+them are negative, to prevent them from being interpreted as options.
 .PP
 The tests are executed by specifying \fB\-\-selftest\fP or \fB\-\-valgrind\fP. 
 The program can also be compiled without the test suite by defining
@@ -48,6 +54,12 @@ No error.
 1
 Some kind of error occurred.
 .SH EXAMPLES
+.TP
+\fClst\-demo 1 2 3\fP
+Print the sum of the arguments, 6.
+.TP
+\fClst\-demo \-\- \-3 5\fP
+Print 2. The \fB\-\-\fP prevents \fB\-3\fP from being parsed as an option.
 .TP
 \fClst\-demo \-\-selftest\fP
 Execute the tests.
