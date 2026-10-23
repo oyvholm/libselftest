@@ -7,7 +7,7 @@ Summary of user-visible changes in libselftest
 For a complete log of changes, refer to the Git commit log in the 
 repositories mentioned in `README.md`.
 
-v0.1.0 - 2026-xx-xx
+v0.1.0 - 2026-10-23
 -------------------
 
 First release.
